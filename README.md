@@ -43,7 +43,7 @@ for more details to set up python interface visit this [repository](https://gith
 
 What is node recycling? The idea is to discard the least recently visited leaf nodes from the search tree as the number of nodes exceeds a budget. Nodes are stored in a fixed-size (budget) FIFO-like container to determine their relative importance order, with the next node to be discarded at the front. 
 
-During the selection phase we push the nodes to the back of the container where we assign higher importance for the nodes closer to the root. In the expansion step we overwrite the node at the front and update its position in the container. When the number of nodes exceeds the budget, the node to be overwritten is the least recently visited leaf node (node recycling). 
+During the selection phase we push the nodes to the back of the container where we assign higher importance for the nodes closer to the root. In the expansion step we overwrite the node at the front and update its position in the container. When the number of nodes exceeds the budget, the node to be overwritten is the least recently visited leaf node or an unreachable node (node recycling). 
 
 Examples are shown below with a budget of 8 and transposition table size of 10:
 
@@ -51,14 +51,14 @@ Updating the node order when the budget is not exceeded:
 
 ![Alt text](add.png?raw=true "adding")
 
-In hash tables a collision occurs when 2 or more nodes are mapped to the same entry. There are 2 common approaches to handle such events, chaining and open addressing. With chaining we have a linked list at each entry to store multiple nodes while open addressing stores each elemenent in the hash table itself. Open addressing tends to outperform chaining because of better cache performance as long as the load factor is kept low, which is the main feature of node recycling.
+In hash tables a collision occurs when 2 or more nodes are mapped to the same entry. There are 2 common approaches to handle such events, chaining and open addressing. With chaining we have a linked list at each entry to store multiple nodes while open addressing stores each elemenent in the hash table itself. Open addressing is preferred as long as the load factor is kept low, which is the main feature of node recycling.
 
-Each time a collision occurs with open addressing nodes can be placed to the next available slot called linear probing approach. Emptied slots should be marked as a special deleted flag otherwise nodes with a hash value earlier than the emptied cell, but that are stored in a position later than the emptied cell could be reported as not found during lookups. The problem with this approach is that it increases the load factor of the table slowing down lookup time. 
+Each time a collision occurs with open addressing, nodes can be placed to the next available slot called linear probing approach. Emptied slots should be marked with a special deleted flag otherwise nodes with a hash value earlier than the emptied cell, but that are stored in a position later than the emptied cell could be reported as not found during lookups. The problem with this approach is that it increases the load factor of the table and slows down the lookup time. 
 
 Since the number of lookups are much higher than the number of deletion during Monte Carlo tree search, it is better to fill up the deleted slots:
 Instead, when a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [5].
 
-Node recycling and transposition table updates:
+Node recycling and recursive replacement for transposition table updates:
 
 ![Alt text](recycling.png?raw=true "recycling")
 
