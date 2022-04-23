@@ -76,6 +76,8 @@ protected:
     // code stores the result (hash value) from the last linear probing
     // so later we can store the new node at the proper location
     ull code;
+
+    unsigned tableSize;
 };
 
 template<typename T>
@@ -85,11 +87,10 @@ RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned hashCodeSize, unsigned bu
     empty(1, HashNode(0,EMPTYCODE)),
     budget(budget),
     fifo(budget, HashNode(0,EMPTYCODE)), // preallocate nodes
-    code(0)
+    code(0),
+    tableSize = pow(2, hashCodeSize)
 {
-    // +2 additional dummy entries at the end
-    unsigned tableSize = pow(2, hashCodeSize) + 2;
-    //if(tableSize - 2 < 2 * budget)
+    //if(tableSize < 2 * budget)
     //    throw std::invalid_argument( "RZHashTable: load factor should not exceed 0.5" );
 
     // last is root
@@ -98,7 +99,8 @@ RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned hashCodeSize, unsigned bu
     target = fifo.end();
     --target;
 
-    table = vector<typename list<HashNode>::iterator>(tableSize, empty.begin());
+    // +2 additional dummy entries at the end
+    table = vector<typename list<HashNode>::iterator>(tableSize + 2, empty.begin());
     table[Base::currCode] = target; // set root in table
 }
 
@@ -148,7 +150,7 @@ T* RZHashTable<T>::load(unsigned moveIdx)
             Base::parent = addressof(it->impl);
             return Base::parent;
         }
-        ++code;
+        code = (code + 1) % tableSize;
         it = table[code];
     }
     // node is not in the table
@@ -164,8 +166,8 @@ T* RZHashTable<T>::store(Args&&... args)
     targetCode = fifo.front().code;
     // find exact location
     while(table[targetCode]->key != fifo.front().key)
-        ++targetCode;
-    sourceCode = targetCode + 1;
+        targetCode = (targetCode + 1) % tableSize;
+    sourceCode = (targetCode + 1) % tableSize;
 
     // we insert before shifting so we do not need to check if we need to shift it afterwards
     // override the least recently visited leaf node by the new one
@@ -182,13 +184,13 @@ T* RZHashTable<T>::store(Args&&... args)
         // check if we can shift from source (that is hashcode is between the target and its current location)
         // normal in-between comparison would not work because of overflow
         if(sourceCode < targetCode ?
-           (table[sourceCode]->code - sourceCode - 1 <= targetCode - sourceCode - 1) :
-           (table[sourceCode]->code - targetCode - 1 >= sourceCode - targetCode))
+           (table[sourceCode]->code <= targetCode && table[sourceCode]->code > sourceCode) :
+           (table[sourceCode]->code <= targetCode || table[sourceCode]->code > sourceCode))
         {
             table[targetCode] = table[sourceCode];
             targetCode = sourceCode;
         }
-        ++sourceCode;
+        sourceCode = (sourceCode + 1) % tableSize;
     }
 
     // set last source entry to empty to remove duplication or the first one if there was no shift

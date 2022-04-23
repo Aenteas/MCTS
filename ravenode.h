@@ -50,12 +50,12 @@ public:
     RAVENode<G, P>* select(T<RAVENode<G, P>>* const table);
 
     template<template<typename> typename T>
-    RAVENode<G, P>* expand(T<RAVENode<G, P>* const table);
+    RAVENode<G, P>* expand(T<RAVENode<G, P>>* const table);
 
     template<template<typename> typename T>
-    RAVENode<G, P>* backprop(double outcome, T<RAVENode<G, P>* const table);
+    void backprop(double outcome, T<RAVENode<G, P>>* const table);
 
-    static RAVENode<G, P>* backward();
+    static void backward();
 
     // getters
     double getStateScore() const;

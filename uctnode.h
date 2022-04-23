@@ -30,7 +30,6 @@ using namespace std;
 template<typename G, typename P>
 class UCTNode: public Node<T, G>
 {
-    typedef Node<T,G> Node;
 public:
     UCTNode(UCTNode<G, P>* parent);
 
@@ -49,9 +48,9 @@ public:
     UCTNode<G, P>* expand(T<UCTNode<G, P>>* const table);
 
     template<template<typename> typename T>
-    UCTNode<G, P>* backprop(double outcome, T<UCTNode<G, P>>* const table);
+    void backprop(double outcome, T<UCTNode<G, P>>* const table);
 
-    static UCTNode<G, P>* backward();
+    static void backward();
 
     // getters
     double getStateScore() const;

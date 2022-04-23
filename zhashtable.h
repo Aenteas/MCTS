@@ -3,21 +3,18 @@
 
 #include "zhashtablebase.h"
 #include <vector>
-#include <list>
+#include <array>
 #include <memory>
 
 using namespace std;
 
 /**********************************************************************************
  * Zobrist HashTable implementation with simple replacement scheme                *
- * - Collision is handled by storing new items in lists at each entry (chaining)  *
- * - When the size of the list exceeds a limit (chainSize) the following          *
- * replacement scheme is employed:                                                *
+ * - Collision is handled by storing new items in arrays at each entry            *
+ * - When the # of items to store would exceed 2 the following replacement scheme *
+ * is employed:                                                *                  *
  * We discard the item that is deeper, if they are at the same depth we keep      *
  * the one that has been visited more                                             *
- *                                                                                *
- * Additional requirements on node type T:                                        *
- * - defined copy and moving assignment operator                                  *
  **********************************************************************************/
 
 template<typename T>
@@ -27,8 +24,8 @@ class ZHashTable: public ZHashTableBase<T>
 public:
     ZHASHTABLEBASE_TYPEDEFS
 
-    ZHashTable(unsigned moveNum, unsigned hashCodeSize=20, unsigned chainSize=2);
-    ~ZHashTable() { delete root; }
+    ZHashTable(unsigned moveNum, unsigned hashCodeSize=20);
+    ~ZHashTable();
 
     ZHashTable(const ZHashTable&)=delete;
     ZHashTable& operator=(const ZHashTable&)=delete;
@@ -62,49 +59,58 @@ protected:
     // current search depth
     unsigned depth;
 
-    // maximum length of the list at each entry
-    unsigned chainSize;
-
-    vector<list<DHashNode>> table;
+    vector<array<DHashNode*, 2>> table;
     DHashNode* root;
-
-    // entry index and list iterator to be removed. Node removal is postponed after backpropagation
-    ull rCode;
-    typename list<DHashNode>::iterator rIt;
+    DHashNode* rp;
 };
 
 template<typename T>
-ZHashTable<T>::ZHashTable(unsigned moveNum, unsigned hashCodeSize, unsigned chainSize):
+ZHashTable<T>::ZHashTable(unsigned moveNum, unsigned hashCodeSize):
     ZHashTableBase<T>(moveNum, hashCodeSize),
     depth(0),
-    chainSize(chainSize),
-    table{vector<list<DHashNode>>(pow(2, hashCodeSize), list<DHashNode>())},
-    root(new DHashNode()),
-    rCode(pow(2, hashCodeSize)) // invalid value so we can check it when there is no collision so far
-{}
+    table{vector<array<DHashNode*, 2>>(pow(2, hashCodeSize), {nullptr, nullptr})},
+    rp(new DHashNode())
+{
+    table[0][0] = new DHashNode();
+    root = table[0][0];
+}
+
+template<typename T>
+ZHashTable<T>::~ZHashTable()
+{
+    delete rp;
+    for(auto& slot : table[Base::currCode]){
+        for(auto p : slot){
+            delete p;
+        }
+    }
+    // root has no ownership so we do not need to delete it
+}
 
 template<typename T>
 T* ZHashTable<T>::load(unsigned moveIdx)
 {
     Base::update(moveIdx);
-    for(auto& item : table[Base::currCode]){
-        if(item.impl.impl.key == Base::currKey)
-            /**
-               There is almost zero probability that 2 states from the current selection path will be mapped
-               to the same entry with the same hashKey. But when it happens we
-               have an infinite loop. We could check that with additional computation and storage but the problem is
-               that loops might be naturally part of the searching tree (like in chess). It is not really
-               the hashtable's job to handle that so we leave it to the searching algorithm. Worst case if it is not
-               handled the search should run out of time and the thread should be interrupted in which case the currently best
-               move is returned.
-
-               In the other case, when a newly discovered state is mapped to an other one that is not in the current selection path
-               we potentially update the nodes with the wrong statistics but this effect is negligible compared to the cost of
-               handling it.
-            **/
-            return addressof(item.impl.impl);
-    }
     ++depth;
+    for(auto& slot : table[Base::currCode]){
+        for(auto p : slot){
+            if(p->impl.impl.key == Base::currKey)
+                /**
+                 There is almost zero probability that 2 states from the current selection path will be mapped
+                to the same entry with the same hashKey. But when it happens we
+                have an infinite loop. We could check that with additional computation and storage but the problem is
+                that loops might be naturally part of the searching tree (like in chess). It is not really
+                the hashtable's job to handle that so we leave it to the searching algorithm. Worst case if it is not
+                handled the search should run out of time and the thread should be interrupted in which case the currently best
+                move is returned.
+
+                In the other case, when a newly discovered state is mapped to an other one that is not in the current selection path
+                we potentially update the nodes with the wrong statistics but this effect is negligible compared to the cost of
+                handling it.
+                **/
+                return addressof(p->impl.impl);
+        }
+    }
     return nullptr;
 }
 
@@ -115,50 +121,63 @@ T* ZHashTable<T>::store(Args&&... args)
     // replacement scheme
     // node deallocation is postponed after backpropagation
     // because node might be removed from the selection path
-    if(table[currCode].size() == 2){
+    if(!table[currCode][0]){
+        table[currCode][0] = new T(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
+        return addressof(table[Base::currCode][0]->impl.impl);
+    }
+    else if(!table[currCode][1]){
+        table[currCode][1] = new T(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
+        return addressof(table[Base::currCode][1]->impl.impl);
+    }
+    else{
         // reachable ? -> closer to root ? -> visit count ?
-        // node deallocation is postponed after backpropagation
-        if(table[Base::currCode].front().depth <= root->depth){
-            rIt = table[Base::currCode].begin();
+        // we overwrite replaced node after backpropagation
+        if(table[Base::currCode][0]->depth <= root->depth){
+            swap(table[Base::currCode][0], rp);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][0]->impl.impl);
         }
-        else if(table[Base::currCode].back().depth <= root->depth){
-            rIt = table[Base::currCode].end();
-            --rIt;
+        else if(table[Base::currCode][1]->depth <= root->depth){
+            swap(table[Base::currCode][1], rp);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][1]->impl.impl);
         }
-        else if(table[Base::currCode].front().depth > table[Base::currCode].back().depth){
-            rIt = table[Base::currCode].begin();
+        else if(table[Base::currCode][0]->depth > table[Base::currCode][1]->depth){
+            swap(table[Base::currCode][0], rp);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][0]->impl.impl);
         }
-        else if(table[Base::currCode].front().depth < table[Base::currCode].back().depth){
-            rIt = table[Base::currCode].end();
-            --rIt;
+        else if(table[Base::currCode][0]->depth < table[Base::currCode][1]->depth){
+            swap(table[Base::currCode][1], rp);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][1]->impl.impl);
         }
-        else if(table[Base::currCode].front().visitCount() < table[Base::currCode].back().visitCount()){
-            rIt = table[Base::currCode].begin();
+        else if(table[Base::currCode][0]->visitCount() < table[Base::currCode][1]->visitCount()){
+            swap(table[Base::currCode][0], rp);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][0]->impl.impl);
         }
         else{
-            rIt = table[Base::currCode].end();
-            --rIt;
+            swap(table[Base::currCode][1], rp);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...)
+            return addressof(table[Base::currCode][1]->impl.impl);
         }
-        rCode = Base::currCode;
     }
-    table[Base::currCode].emplace_front(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-    return addressof(*table[Base::currCode].begin());
 }
 
 template<typename T>
 T* ZHashTable<T>::updateRoot(unsigned moveIdx){
     // load root
     Base::update(moveIdx);
-    auto it = table[Base::currCode].begin();
-    while(it != table[Base::currCode].end()){
-        if(item.impl.impl.key == Base::currKey){
-            root = addressof(move(*it));
-            // remove from table
-            table[Base::currCode].erase(it);
-            break;
+    for(auto& slot : table[Base::currCode]){
+        for(auto p : slot){
+            if(p->impl.impl.key == Base::currKey){
+                root = p;
+                goto exit;
+            }
         }
-        ++it;
     }
+    exit:
     ++depth;
     root->impl.impl.parent = nullptr;
     Base::parent = addressof(root->impl.impl);
@@ -173,11 +192,6 @@ T* ZHashTable<T>::selectRoot()
     Base::currKey = root->impl.key;
     Base::currCode = root->impl.code;
     Base::parent = addressof(root->impl.impl);
-    // remove replaced node if there was a collision
-    if(rCode < table.size()){
-        table[rCode].erase(rIt);
-        rCode = table.size();
-    }
     return Base::parent;
 }
 
