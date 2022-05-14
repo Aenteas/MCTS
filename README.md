@@ -70,7 +70,7 @@ Node recycling and recursive replacement for transposition table updates:
 
 ### Implementation details
 
-* UCT-2 [2] and RAVE [3] exploration strategies.
+* UCT-2 [2] exploration strategy.
 * Node recycling implementation from [4] adapted to linear probing transposition tables. As a benchmark, there is a simple transposition table implementation with chaining
 * No heap allocation during the search phase
 * Template-based implementation without virtual calls
@@ -99,8 +99,6 @@ of their respective colors.
 [1] https://www.redblobgames.com/grids/hexagons/
 
 [2] Childs, B. E., Brodeur, J. H., & Kocsis, L. (2008, December). Transpositions and move groups in Monte Carlo tree search. In 2008 IEEE Symposium On Computational Intelligence and Games (pp. 389-395). IEEE.
-
-[3] Gelly, S., & Silver, D. (2011). Monte-Carlo tree search and rapid action value estimation in computer Go. Artificial Intelligence, 175(11), 1856-1875.
 
 [4] Powley, E., Cowling, P., & Whitehouse, D. (2017, September). Memory bounded monte carlo tree search. In Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment (Vol. 13, No. 1).
 
