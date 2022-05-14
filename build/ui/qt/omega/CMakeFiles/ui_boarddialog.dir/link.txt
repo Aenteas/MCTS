@@ -1,2 +1,0 @@
-/usr/bin/ar qc libui_boarddialog.a CMakeFiles/ui_boarddialog.dir/ui_boarddialog_autogen/mocs_compilation.cpp.o
-/usr/bin/ranlib libui_boarddialog.a
