@@ -51,7 +51,6 @@ What are the benefits of node recycling?
 
 * Can be customized for memory requirements
 * No heap allocation is needed during the search phase
-* Can utilize open addressing hash tables
 * Hash independent node replacement
 
 Updating the node order when the budget is not exceeded:
@@ -81,6 +80,7 @@ Node recycling and recursive replacement for transposition table updates:
 ## TODOS
 
 * Parallel execution and thread interruption
+* Add general game interface
 * Add python chess game interface
 
 ### Omega game rules

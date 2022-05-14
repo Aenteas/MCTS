@@ -1,0 +1,80 @@
+{
+	"BUILD_DIR" : "/home/david/projects/mcts_swig/build/engine/bot/random/mcts_swig.engine.bot.random.randombot_autogen",
+	"CMAKE_BINARY_DIR" : "/home/david/projects/mcts_swig/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/david/projects/mcts_swig/build/engine/bot/random",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/david/projects/mcts_swig/engine/bot/random",
+	"CMAKE_EXECUTABLE" : "/snap/cmake/1082/bin/cmake",
+	"CMAKE_LIST_FILES" : [ "/home/david/projects/mcts_swig/engine/bot/random/CMakeLists.txt" ],
+	"CMAKE_SOURCE_DIR" : "/home/david/projects/mcts_swig",
+	"DEP_FILE" : "",
+	"DEP_FILE_RULE_NAME" : "",
+	"HEADERS" : 
+	[
+		[
+			"/home/david/projects/mcts_swig/engine/bot/random/include/engine/bot/random/randombot.h",
+			"MU",
+			"FNFQZ7WTGF/moc_randombot.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/david/projects/mcts_swig/build/engine/bot/random/mcts_swig.engine.bot.random.randombot_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/david/projects/mcts_swig/build/engine/bot/random/mcts_swig.engine.bot.random.randombot_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : [ "mcts_swig_engine_bot_random_randombot_EXPORTS" ],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/david/projects/mcts_swig/build/include",
+		"/home/david/projects/mcts_swig/engine/bot/random/include",
+		"/home/david/projects/mcts_swig/engine/bot/random/include/engine/bot/random",
+		"/usr/include/c++/7",
+		"/usr/include/x86_64-linux-gnu/c++/7",
+		"/usr/include/c++/7/backward",
+		"/usr/lib/gcc/x86_64-linux-gnu/7/include",
+		"/usr/local/include",
+		"/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed",
+		"/usr/include/x86_64-linux-gnu",
+		"/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-dM",
+		"-E",
+		"-c",
+		"/snap/cmake/1082/share/cmake-3.23/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/david/projects/mcts_swig/build/engine/bot/random/mcts_swig.engine.bot.random.randombot_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 2,
+	"PARSE_CACHE_FILE" : "/home/david/projects/mcts_swig/build/engine/bot/random/CMakeFiles/mcts_swig.engine.bot.random.randombot_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt5/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt5/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"QT_VERSION_MINOR" : 9,
+	"SETTINGS_FILE" : "/home/david/projects/mcts_swig/build/engine/bot/random/CMakeFiles/mcts_swig.engine.bot.random.randombot_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/home/david/projects/mcts_swig/engine/bot/random/src/randombot.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

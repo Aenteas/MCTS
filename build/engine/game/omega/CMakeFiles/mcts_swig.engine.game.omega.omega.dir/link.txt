@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,-soname,libmcts_swig.engine.game.omega.omega.so -o libmcts_swig.engine.game.omega.omega.so CMakeFiles/mcts_swig.engine.game.omega.omega.dir/mcts_swig.engine.game.omega.omega_autogen/mocs_compilation.cpp.o CMakeFiles/mcts_swig.engine.game.omega.omega.dir/src/omega.cpp.o  -Wl,-rpath,:::::::::::::: 

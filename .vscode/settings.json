@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "array": "cpp",
+        "tuple": "cpp",
+        "cmath": "cpp",
+        "unordered_map": "cpp",
+        "atomic": "cpp",
+        "chrono": "cpp",
+        "vector": "cpp",
+        "new": "cpp"
+    }
+}
