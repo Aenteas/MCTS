@@ -7,8 +7,6 @@
 #include <array>
 #include <memory>
 
-using namespace std;
-
 /**********************************************************************************
  * Zobrist HashTable implementation with simple replacement scheme                *
  * - Collision is handled by storing new items in arrays at each entry            *
@@ -65,7 +63,7 @@ public:
     // we need to store the path in a stack
     T* selectRoot();
 protected:
-    vector<array<DHashNode*, 2>> table;
+    std::vector<array<DHashNode*, 2>> table;
     DHashNode* root;
     DHashNode* rp;
 
@@ -114,7 +112,7 @@ T* ZHashTable<T>::select(unsigned moveIdx) const
             handling it.
             **/
 
-            return addressof(p->impl.impl);
+            return std::addressof(p->impl.impl);
         }
     }
     return nullptr;
@@ -140,44 +138,44 @@ T* ZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     // because node might be removed from the selection path
     if(!table[Base::currCode][0]){
         table[Base::currCode][0] = new DHashNode(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-        return addressof(table[Base::currCode][0]->impl.impl);
+        return std::addressof(table[Base::currCode][0]->impl.impl);
     }
     else if(!table[Base::currCode][1]){
         table[Base::currCode][1] = new DHashNode(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-        return addressof(table[Base::currCode][1]->impl.impl);
+        return std::addressof(table[Base::currCode][1]->impl.impl);
     }
     else{
         // reachable ? -> closer to root ? -> visit count ?
         // we overwrite replaced node after backpropagation
         if(table[Base::currCode][0]->depth <= root->depth){
-            swap(table[Base::currCode][0], rp);
+            std::swap(table[Base::currCode][0], rp);
             table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][0]->impl.impl);
+            return std::addressof(table[Base::currCode][0]->impl.impl);
         }
         else if(table[Base::currCode][1]->depth <= root->depth){
-            swap(table[Base::currCode][1], rp);
+            std::swap(table[Base::currCode][1], rp);
             table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][1]->impl.impl);
+            return std::addressof(table[Base::currCode][1]->impl.impl);
         }
         else if(table[Base::currCode][0]->depth > table[Base::currCode][1]->depth){
-            swap(table[Base::currCode][0], rp);
+            std::swap(table[Base::currCode][0], rp);
             table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][0]->impl.impl);
+            return std::addressof(table[Base::currCode][0]->impl.impl);
         }
         else if(table[Base::currCode][0]->depth < table[Base::currCode][1]->depth){
-            swap(table[Base::currCode][1], rp);
+            std::swap(table[Base::currCode][1], rp);
             table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][1]->impl.impl);
+            return std::addressof(table[Base::currCode][1]->impl.impl);
         }
         else if(table[Base::currCode][0]->impl.impl.getVisitCount() < table[Base::currCode][1]->impl.impl.getVisitCount()){
-            swap(table[Base::currCode][0], rp);
+            std::swap(table[Base::currCode][0], rp);
             table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][0]->impl.impl);
+            return std::addressof(table[Base::currCode][0]->impl.impl);
         }
         else{
-            swap(table[Base::currCode][1], rp);
+            std::swap(table[Base::currCode][1], rp);
             table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, forward<Args>(args)...);
-            return addressof(table[Base::currCode][1]->impl.impl);
+            return std::addressof(table[Base::currCode][1]->impl.impl);
         }
     }
 }
@@ -191,14 +189,14 @@ T* ZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
     ++depth;
     for(auto& p : table[Base::currCode]){
         if(p && p->impl.key == Base::currKey){
-            swap(root, p);
+            std::swap(root, p);
             root->impl.impl.parent = nullptr;
             goto found;
         }
     }
     root->reset(Base::currKey, Base::currCode, nullptr, depth, forward<Args>(args)...);
     found:
-    Base::parent = addressof(root->impl.impl);
+    Base::parent = std::addressof(root->impl.impl);
     return Base::parent;
 }
 
@@ -209,7 +207,7 @@ T* ZHashTable<T>::selectRoot()
     depth = root->depth;
     Base::currKey = root->impl.key;
     Base::currCode = root->impl.code;
-    Base::parent = addressof(root->impl.impl);
+    Base::parent = std::addressof(root->impl.impl);
     return Base::parent;
 }
 

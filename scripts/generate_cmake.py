@@ -552,7 +552,7 @@ def create_top_cmakelists():
 
     # call python script
     execute_process(
-    COMMAND sudo python3 ${{OPTION_PY_OUT}}
+    COMMAND python3 ${{OPTION_PY_OUT}}
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE OPTIONS
     RESULT_VARIABLE EXIT_STATUS)

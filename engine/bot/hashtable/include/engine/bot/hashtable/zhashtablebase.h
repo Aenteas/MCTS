@@ -5,8 +5,6 @@
 #include <random>
 #include <math.h>
 
-using namespace std;
-
 /**********************************************************************************
  * Extending hashtable classes with zobrist hashing using CRTP design pattern     *
  *                                                                                *
@@ -70,9 +68,9 @@ public:
 protected:
     typename nodeType<T>::value_type* parent;
     // hashcode to map table entries
-    vector<ull> hashCodes;
+    std::vector<ull> hashCodes;
     // unique node identifiers
-    vector<ull> hashKeys;
+    std::vector<ull> hashKeys;
     // the hashcode of the current gamestate (node)
     ull currCode;
     ull hashCodeMask;

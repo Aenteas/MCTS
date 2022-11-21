@@ -8,8 +8,6 @@
 #include <list>
 #include <memory>
 
-using namespace std;
-
 /**********************************************************************************
  * Recycling Zobrist HashTable                                                    *
  * - When the number of nodes exceeds the budget, it discards the least recently  *
@@ -58,26 +56,26 @@ protected:
     // and to initialize the table so no valid entries are overridden in store function at the begining
     // this way we can spare an if statement in the store function
     // node is empty when the node code is the index for the last entry
-    bool isEmpty(const typename list<HashNode>::iterator& it) const;
-    void setEmpty(typename list<HashNode>::iterator& it);
+    bool isEmpty(const typename std::list<HashNode>::iterator& it) const;
+    void setEmpty(typename std::list<HashNode>::iterator& it);
 
     // empty code
     const ull EMPTYCODE;
     // empty node
-    list<HashNode> empty;
+    std::list<HashNode> empty;
 
     unsigned budget;
     // least recently visited node to discard is at the beginning
     // technically not a fifo because we need to move interior nodes to the end each time they are visited
-    list<HashNode> fifo;
+    std::list<HashNode> fifo;
     // maps hash values to iterators in the fifo
-    vector<typename list<HashNode>::iterator> table;
+    std::vector<typename std::list<HashNode>::iterator> table;
     // we update the fifo during the selection phase (visited ones should go to the back)
     // in the selection phase nodes need to be inserted before their parents and target stores that location
     // it would be more clean to do it during backpropagation (so nodes just can be pushed to the back)
     // but this way the caller do not need to rely on a stack storing the moves/nodes
     // and we can also just jump back to root after simulation
-    typename list<HashNode>::iterator target;
+    typename std::list<HashNode>::iterator target;
 
     // code stores the result (hash value) from the last linear probing
     // so later we can store the new node at the proper location
@@ -104,17 +102,17 @@ RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned hashCodeSize, unsigned bu
     --target;
 
     // +2 additional dummy entries at the end
-    table = vector<typename list<HashNode>::iterator>(tableSize + 2, empty.begin());
+    table = std::vector<typename std::list<HashNode>::iterator>(tableSize + 2, empty.begin());
     table[Base::currCode] = target; // set root in table
 }
 
 template<typename T>
-inline bool RZHashTable<T>::isEmpty(const typename list<HashNode>::iterator& it) const{
+inline bool RZHashTable<T>::isEmpty(const typename std::list<HashNode>::iterator& it) const{
     return it == empty.begin();
 }
 
 template<typename T>
-inline void RZHashTable<T>::setEmpty(typename list<HashNode>::iterator& it) {
+inline void RZHashTable<T>::setEmpty(typename std::list<HashNode>::iterator& it) {
     it = empty.begin();
 }
 
@@ -145,7 +143,7 @@ T* RZHashTable<T>::select(unsigned moveIdx)
 
             // in case Ts' & operator is overloaded
             // * operator gives reference
-            return addressof(it->impl);
+            return std::addressof(it->impl);
         }
         code = (code + 1) & Base::hashCodeMask;
         it = table[code];
@@ -173,7 +171,7 @@ void RZHashTable<T>::update(unsigned moveIdx)
             target = it;
             it->impl.parent = Base::parent;
             // set parent so it can be provided to the next child
-            Base::parent = addressof(it->impl);
+            Base::parent = std::addressof(it->impl);
             return;
         }
         code = (code + 1) & Base::hashCodeMask;
@@ -232,7 +230,7 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     // after leaf the next node to visit is root
     target = fifo.end();
     --target;
-    return addressof(it->impl);
+    return std::addressof(it->impl);
 }
 
 template<typename T>
@@ -265,7 +263,7 @@ T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
         target = it;
         it->impl.parent = nullptr;
         // set parent so it can be provided to the next children
-        Base::parent = addressof(it->impl);
+        Base::parent = std::addressof(it->impl);
     }
     return Base::parent;
 }
@@ -279,7 +277,7 @@ T* RZHashTable<T>::selectRoot()
     // update
     Base::currKey = root->key;
     Base::currCode = root->code;
-    Base::parent = addressof(root->impl);
+    Base::parent = std::addressof(root->impl);
     return Base::parent;
 }
 

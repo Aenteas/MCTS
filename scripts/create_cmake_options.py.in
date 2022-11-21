@@ -118,7 +118,6 @@ def create_cmake_config(lib_dirs):
         f.write(content)
 
 if __name__ == "__main__":
-
     lib_dirs = get_lib_dirs()
     tree = buildTree(lib_dirs)
     # default build option is true

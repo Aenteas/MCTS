@@ -20,10 +20,10 @@ public:
 };
 
 /**********************************************************************************
- * Fully templatized Monte Carlo tree search implementation                       *
+ * Fully customizable Monte Carlo tree search implementation                       *
  **********************************************************************************/
 
-// node, hashtable, game, policy, scheduler
+// node, game, hashtable, policy, scheduler
 template<typename N, typename G, typename T, typename P, typename S>
 class MCTS: public MCTSBase
 {
@@ -50,12 +50,12 @@ public:
     // call when we update by opponents' move
     virtual void updateRoot(unsigned int moveIdx) final{
         // game is expected to be updated at this point
+        // this is because we need to update the game in the UI and stop gameplay if we reach a terminal state
         root = table->updateRoot(moveIdx);
         policy->updateRoot();
     }
 
     virtual void run() override{
-        // game and policy are thread_local so we need to set them up before each search as a new thread is started
         N::setup(&game, policy);
         scheduler->schedule();
         while(!scheduler->finish()){
@@ -67,7 +67,6 @@ public:
         typename G::Player currPlayer;
         // update root by the best move
         do{
-            policy->updateRoot();
             N* bestChild = Node::selectMostVisited(table, &game);
             // depending on the hashtable implementation it could be that there was only one child explored and removed
             if(bestChild)
@@ -102,7 +101,7 @@ protected:
     void backpropagation(double outcome){
         leaf->backprop(outcome, table);
     }
-    unsigned d;
+
     unsigned selectionDepth;
     T* const table;
     G& game;

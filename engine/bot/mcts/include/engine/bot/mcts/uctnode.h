@@ -3,8 +3,6 @@
 
 #include <vector>
 
-using namespace std;
-
 /**********************************************************************************
  * UCTNode implementation (second variation) from                                 *
  * Childs, B. E., Brodeur, J. H., & Kocsis, L. (2008, December). Transpositions   *
@@ -73,8 +71,9 @@ protected:
     inline thread_local static P* policy;
     inline thread_local static G* game;
 
-    // We only store statistics for the available moves (children)
-    vector<double> vCounts;
+    // We only store statistics for the available moves (children) to spare memory. As a result, we can not use
+    // update items by direct move indexing (somewhat slower)
+    std::vector<double> vCounts;
 };
 
 template<typename G, typename P>
@@ -86,26 +85,29 @@ void UCTNode<G, P>::setup(G* game, P* policy)
 
 template<typename G, typename P>
 UCTNode<G, P>::UCTNode(UCTNode<G, P>* parent):
-    parent(parent)
+    parent(parent),
+    mean(0.5)
 {
-    mean = game->getCurrentDepth() > 0 ? policy->getScore(game->getLastMove()) : 0.5;
     vCount = game->getValidMoves().size();
-    vCounts = vector<double> (vCount, 1);
+    vCounts = std::vector<double> (vCount, 1);
 }
 
 template<typename G, typename P>
 void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
     this->parent = parent;
-    // no need to check depth because reset will only be called when depth > 0
-    mean = policy->getScore(game->getLastMove());
+    mean = 0.5;
     vCount = game->getValidMoves().size();
+    // here there is a potential for heap allocation when the number of valid moves increases in a new position like in chess
+    // in other games like gomoku and omega this is not the case
+    // alternatively we could preallocate size to the maximum number of valid moves to avoid heap allocation but
+    // that would be at the expense of increasing memory footprint
     vCounts.resize(vCount);
     fill(vCounts.begin(), vCounts.end(), 1);
 }
 
 template<typename G, typename P>
 double UCTNode<G, P>::actionScore(UCTNode<G, P>* child, typename G::Move move, unsigned int childIdx, double logc) const {
-    return (child ? child->mean : policy->getScore(move)) + sqrt(logc / vCounts[childIdx]);
+    return (child ? child->mean : 0.5) + sqrt(logc / vCounts[childIdx]);
 }
 
 template<typename G, typename P>
@@ -113,40 +115,29 @@ template<template<typename> typename T>
 UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     UCTNode<G, P>* bestChild = nullptr;
     unsigned int bestIdx;
-    // first move will be chosen if there is no child
     unsigned bestMoveIdx;
-    // usually the number of available moves are higher than the search depth so it improves the performance if we do a check here
-    if(vCount > vCounts.size()){
-        double maxScore = -1;
-        double score;
-        unsigned int idx=0;
-        double logc = c * log(vCount + 1);
-        for(const auto& move : game->getValidMoves()){
-            unsigned moveIdx = game->getMoveIdx(move.piece, move.idx);
-            UCTNode<G, P>* child = table->select(moveIdx);
-            score = actionScore(child, move, idx, logc);
-            if(score > maxScore){
-                maxScore = score;
-                bestChild = child;
-                bestMoveIdx = moveIdx;
-                bestIdx = idx;
-            }
-            ++idx;
+    double maxScore = -1;
+    double score;
+    unsigned int idx=0;
+    double logc = c * log(vCount + 1);
+    for(const auto& move : game->getValidMoves()){
+        unsigned moveIdx = game->getMoveIdx(move.piece, move.idx);
+        UCTNode<G, P>* child = table->select(moveIdx);
+        score = actionScore(child, move, idx, logc);
+        if(score > maxScore){
+            maxScore = score;
+            bestChild = child;
+            bestMoveIdx = moveIdx;
+            bestIdx = idx;
         }
-        // only update table if child is found. This is because
-        // we need to expand before updating parent from the table
-        // we need to check again if there is any child of the parent as
-        // children could be removed from transposition table
+        ++idx;
+    }
 
-        if(bestChild)
-            table->update(bestMoveIdx);
-        game->update(bestMoveIdx);
-    }
-    else{
-        auto [moveIdx, idx] = policy->select();
-        bestMoveIdx = moveIdx;
-        bestIdx = idx;
-    }
+    // When we choose to visit an unexplored state we stop the selection phase and will expand the node with the new child
+    // During expansion we will update the table by calling store on it so no need to update it here in that case
+    if(bestChild)
+        table->update(bestMoveIdx);
+    game->update(bestMoveIdx);
     // update visit counts
     ++vCount;
     ++vCounts[bestIdx];
@@ -175,6 +166,8 @@ void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table){
     UCTNode<G, P>* currParent = current->parent;
     while(currParent){
         game->undo();
+        // win: 1, draw: 0.5, lose: 0
+        // Outcome is from the WHITE player's perspective, val is from the current player's perspective
         double val = outcome+game->getCurrentPlayer()*(1.0-2.0*outcome);
         current->mean = (current->mean*(current->vCount-1)+val)/(current->vCount);
         current = currParent;
@@ -195,6 +188,7 @@ double UCTNode<G, P>::getVisitCount() const {
 
 template<typename G, typename P>
 void UCTNode<G, P>::setupBackProp(unsigned depth){
+    // update game with the leaf node state as preparation for backprop
     while(game->getCurrentDepth() != depth)
         game->undo();
 }

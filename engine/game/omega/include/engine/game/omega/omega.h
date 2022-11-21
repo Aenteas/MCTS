@@ -162,7 +162,7 @@ public:
     unsigned getLastMoveIdx() const;
     Omega::ValidMoves getValidMoveIdxs() const;
     vector<Move> getValidMoves() const;
-    vector<Move> getTakenMoves(unsigned from=0) const;
+    vector<Move> getTakenMoves() const;
     // moveIdx -> pieceMoveIdx
     unsigned getPieceMoveIdx(unsigned moveIdx) const;
     // pieceMoveIdx -> moveIdx
@@ -174,6 +174,8 @@ public:
     unsigned getMaxNumMoves() const;
     // number of possible moves (maximum)
     unsigned getMoveNum() const;
+    // number of possible moves (maximum)
+    unsigned getMaxLegalMoveNum() const;
 
     vector<Piece> getAvailablePieces() const;
 

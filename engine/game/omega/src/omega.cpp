@@ -106,7 +106,7 @@ void Omega::update(unsigned moveIdx){
     Cell& cell = idxToCell(cellIdx);
     cell.color = (Player)currentPiece;
     mergeGroups(cell);
-    //updateNeighbourBitMaps(cell);
+    // updateNeighbourBitMaps(cell);
     --numSteps;
     updateColors();
     ++depth;
@@ -444,17 +444,18 @@ vector<Omega::Move> Omega::getValidMoves() const{
     vector<Omega::Move> res;
     res.reserve(validMoves.mSize);
     unsigned corr = currentPiece == WHITEPIECE?0:cellNum;
-    for(const unsigned idx : validMoves)
+    for(const unsigned idx : validMoves){
         res.emplace_back(currentPlayer, currentPiece, idx - corr);
+    }
     return res;
 }
 
-vector<Omega::Move> Omega::getTakenMoves(unsigned from) const{
+vector<Omega::Move> Omega::getTakenMoves() const{
     vector<Omega::Move> res;
     res.reserve(cellNum - validMoves.mSize);
-    Piece piece = (Piece)(from % 2);
-    Player player = from % 4 <= 1 ? Player::WHITE : Player::BLACK;
-    for(unsigned i=from; i<cellNum - validMoves.mSize;++i){
+    Piece piece = Piece::WHITEPIECE;
+    Player player = Player::WHITE;
+    for(unsigned i= 0; i<cellNum - validMoves.mSize;++i){
         res.emplace_back(player, piece, validMoves.takenCells[i]);
         piece = (Piece)(1 - piece);
         if(piece == Player::WHITE)
@@ -486,6 +487,10 @@ unsigned Omega::getMaxNumMoves() const{
 
 unsigned Omega::getMoveNum() const{
     return cellNum*2;
+}
+
+unsigned Omega::getMaxLegalMoveNum() const{
+    return cellNum;
 }
 
 vector<Omega::Piece> Omega::getAvailablePieces() const{
