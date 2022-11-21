@@ -30,6 +30,10 @@ def get_lib_dirs():
         lib_dirs.extend([os.path.relpath(path, cmake_root)[:-8] 
         for path in glob.glob(os.path.join(cmake_root, dir, "**", "include"), recursive=True)
         if not os.path.sep + "external" + os.path.sep in path])
+    for dir in subdirs:
+        lib_dirs.extend([os.path.relpath(path, cmake_root)[:-5] 
+        for path in glob.glob(os.path.join(cmake_root, dir, "**", "apps"), recursive=True)
+        if not os.path.sep + "external" + os.path.sep in path and not os.path.relpath(path, cmake_root)[:-5] in lib_dirs])
     return lib_dirs
 
 option_dict = {}
@@ -108,7 +112,9 @@ def create_cmake_config(lib_dirs):
         f.write(content)
 
     # build info for python
-    os.makedirs(os.path.join(cmake_root, "build", "python", "@PROJECT_NAME@_build"), exist_ok=True)
+    # provide writing permission for the build folder
+    os.umask(0)
+    os.makedirs(os.path.join(cmake_root, "build", "python", "@PROJECT_NAME@_build"), mode=0o777, exist_ok=True)
     with open(os.path.join(cmake_root, "build", "python", "@PROJECT_NAME@_build", "info.py"), 'w') as f:
         content = ""
         for lib_dir in lib_dirs:
@@ -118,6 +124,7 @@ def create_cmake_config(lib_dirs):
         f.write(content)
 
 if __name__ == "__main__":
+
     lib_dirs = get_lib_dirs()
     tree = buildTree(lib_dirs)
     # default build option is true

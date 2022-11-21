@@ -25,5 +25,3 @@ def add_qt_lib_content(rpath):
       cmake_path(GET QTFILE STEM NAME)
       add_library(ui_${{NAME}} apps/${{NAME}}.ui)
     endforeach()""") + "\n\n"
-
-
