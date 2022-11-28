@@ -2,7 +2,9 @@
 #define MCTS_H
 
 #include "node.h"
+#include "engine/game/omega/omega2.h"
 #include <stdexcept>
+#include <iostream>
 
 // Type erasure
 class MCTSBase{
@@ -63,6 +65,7 @@ public:
             double outcome = simulation();
             backpropagation(outcome);
         }
+        std::cout << "num:" << scheduler->num << std::endl; 
         typename G::Player rootPlayer = game.getCurrentPlayer();
         typename G::Player currPlayer;
         // update root by the best move
@@ -105,6 +108,7 @@ protected:
     unsigned selectionDepth;
     T* const table;
     G& game;
+    Omega2 game2;
     P* const policy;
     S* const scheduler;
     N* root;

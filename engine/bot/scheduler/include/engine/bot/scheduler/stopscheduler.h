@@ -36,7 +36,7 @@ public:
 
     bool finish();
     void schedule();
-
+    unsigned num;
 protected:
     // p * msecsBudget time is given to the second best child to catch up
     const double p;
@@ -76,7 +76,8 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
     table(table),
     p(p),
     freq(freq),
-    reserveTime(reserveTime)
+    reserveTime(reserveTime),
+    num(0)
 {
     if(!(p >= 0 or p<=1))
         throw std::invalid_argument( "p argument should be greater than 0 and smaller or equal to 1" );
@@ -114,6 +115,7 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
 
 template<typename G, typename T>
 bool StopScheduler<G, T>::finish(){
+    ++num;
     ++numPlayouts;
     // Make sure that reserve time is large enough to run full cycles at least frequency times otherwise
     // it is not quaranteed that the AI does not run out of time
@@ -149,11 +151,11 @@ bool StopScheduler<G, T>::finish(){
     if(bestNode){
         // most likely there is no way for the AI to win
         if(bestNode->getStateScore() < 0.01 and elapsedmsecs >= 500){
-            return true;
+            return false;
         }
         // most likely the AI won
         if(bestNode->getStateScore() > 0.99 and elapsedmsecs >= 500){
-            return true;
+            return false;
         }
     }
     // check if the best node can change within the dedicated time frame
@@ -161,7 +163,7 @@ bool StopScheduler<G, T>::finish(){
     double minPlayouts = maxScore - secondMaxScore;
     // check if the expected number of playouts that can be carried out within the dedicated time frame is smaller
     if(minPlayouts > p / w * speed * (msecsBudget - elapsedmsecs)){
-        return true;
+        return false;
     }
     return false;
 }
@@ -174,6 +176,7 @@ void StopScheduler<G, T>::schedule(){
     n = game.getNumExpectedMoves();
     w  = (a*n*n + b*n + c);
     msecsBudget = w / n * (rmsecs > 0 ? rmsecs : 1);
+    msecsBudget = 10000;
 }
 
 #endif // STOPSCHEDULER_H

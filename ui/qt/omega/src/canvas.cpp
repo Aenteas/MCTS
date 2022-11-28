@@ -69,7 +69,7 @@ vector<Point> Canvas::hexa_centers() const
 void Canvas::create_hexagons()
 {
     /*
-     *Create the hexagon objects: hexagons[row][col]. Indexing goes
+     * Create the hexagon objects: hexagons[row][col]. Indexing goes
      * from the bottom left to right and then up
      */
     Hexagon::set_inside_radius(radius);
