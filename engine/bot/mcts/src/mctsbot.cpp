@@ -6,6 +6,6 @@ void MCTSBot::updateGame(){
     impl->run();
 }
 
-void MCTSBot::update(unsigned int moveIdx){
-    impl->updateRoot(moveIdx);
+void MCTSBot::updateByOpponent(unsigned int moveIdx){
+    impl->updateByOpponent(moveIdx);
 }

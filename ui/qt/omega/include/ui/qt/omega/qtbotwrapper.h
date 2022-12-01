@@ -24,7 +24,7 @@ public:
     QtBotWrapper(const AiBotBase&)=delete;
     QtBotWrapper& operator=(const AiBotBase&)=delete;
 
-    void update(unsigned int moveIdx);
+    void updateByOpponent(unsigned int moveIdx);
 
     boost::optional<std::string> getErrorMsg() const;
 

@@ -1,4 +1,4 @@
-#include "engine/game/moves.h"
+#include "engine/game/base/moves.h"
 
 #include <vector>
 #include <array>
@@ -12,7 +12,7 @@ public:
     };
 
     struct Hexagon{
-        Hexagon(unsigned idx);
+        Hexagon(unsigned idx): idx(idx), mark(false) {}
         // indices of hexagons (row-by-row from left to right from top to bottom)
         unsigned idx;
         bool mark; // used to indicate if note is visited or not for BFS
@@ -22,14 +22,15 @@ public:
     Omega2(unsigned boardSize);
 
     void assign(const Omega2&); // assigment to update with root state after search is finished. It is a lightweight
-    // assignment operator
-    Omega2& Omega2(const Omega2&)=delete;
+    // version of the correct assignment operator
+    Omega2& operator=(const Omega2&)=delete;
     Omega2(const Omega2&)=delete;
     Omega2& operator=(Omega2&&)=delete;
     Omega2(Omega2&&)=delete;
 
     // ---- updates ----
     void update(unsigned moveIdx);
+    void undo();
 
     // ---- conversions ----
 
@@ -44,22 +45,25 @@ public:
 
     unsigned getNextPlayer() const;
     unsigned getLastPlayer() const;
-    unsigned getNextPiece() const;
-    unsigned getLastPiece() const;
 
     // outcome in terminal state: 1 for WHITE, 0 for BLACK, 0.5 for draw
-    const std::array<double, 2>& scores() const;
-    double outcome() const;
+    const std::array<double, 2>& scores();
+    double outcome();
 
-    const Moves& getValidMoves() const;
-    const Moves& getTakenMoves() const;
+    const Moves::Iterator& getValidMoves();
+    const Moves::Iterator& getTakenMoves();
 
-    const Moves& getLastMove() const;
+    const Moves::Iterator& getLastMove();
+    double getLastMoveIdx();
+
+    std::vector<unsigned> getAvailablePieces() const;
 
     // total number of valid moves
     unsigned getTotalValidMoveNum() const;
     // maximum number of valid moves that can be played in a turn
     unsigned getMaxValidMoveNum() const;
+
+    unsigned getMaxTurnNum() const;
 
     unsigned getCurrentDepth() const;
 
@@ -80,13 +84,16 @@ private:
     unsigned numSteps;
     const int boardSize;
     std::vector<Hexagon> hexagons;
-    Moves moves;
 
-    std::array<double, 2> scores;
+    std::array<double, 2> playerScores;
     std::vector<Hexagon*> queue;
 
     unsigned nextPlayer;
     unsigned nextPiece;
     unsigned depth;
     const unsigned cellNum;
+    bool mark;
+    Moves moves;
+
+    static constexpr unsigned PIECENUM = 2;
 };

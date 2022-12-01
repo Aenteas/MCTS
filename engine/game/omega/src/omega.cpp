@@ -524,7 +524,7 @@ Omega::ValidMoves::ValidMoves(unsigned cellNum):
     for(unsigned i=0; i<cellNum; ++i)
         cells.push_back({i});
     // produce random order
-    random_shuffle(cells.begin(), cells.end());
+    // random_shuffle(cells.begin(), cells.end());
     for(unsigned idx=0; idx<cellNum; ++idx){
         for(unsigned i=0; i<cellNum; ++i){
             if(cells[i].idx == idx)

@@ -17,8 +17,8 @@ QtBotWrapper::~QtBotWrapper()
     delete bot;
 }
 
-void QtBotWrapper::update(unsigned int moveIdx){
-    bot->update(moveIdx);
+void QtBotWrapper::updateByOpponent(unsigned int moveIdx){
+    bot->updateByOpponent(moveIdx);
 }
 
 void QtBotWrapper::updateGame(){

@@ -19,7 +19,7 @@ Moves::Moves(unsigned cellNum):
     for(unsigned i=0; i<cellNum; ++i)
         moves.push_back({i});
     // produce random order
-    random_shuffle(moves.begin(), moves.end());
+    // random_shuffle(moves.begin(), moves.end());
     for(unsigned idx=0; idx<cellNum; ++idx){
         for(unsigned i=0; i<cellNum; ++i){
             if(moves[i].pos == idx)
@@ -35,7 +35,7 @@ Moves::Moves(unsigned cellNum):
     for(unsigned i=1; i<cellNum-1; ++i){
         moves[i].prev = &moves[i-1];
         moves[i].next = &moves[i+1];
-        moves[0].piece = 2;
+        moves[i].piece = 2;
     }
     // cellNum should be at least 2
     moves[cellNum-1].prev = &moves[cellNum-2];
@@ -58,9 +58,9 @@ void Moves::assign(const Moves& other){
     firstEmpty = lookup[other.firstEmpty->pos];
     lastEmpty = lookup[other.lastEmpty->pos];
 
-    // we neither copy the initial state but just use the constructor to create it -> firstTaken and lastTaken are never nullptr
-    firstTaken = lookup[other.firstTaken->pos];
-    lastTaken = lookup[other.lastTaken->pos];
+    // but we potentially copy initial game state
+    firstTaken = other.firstTaken ? lookup[other.firstTaken->pos] : nullptr;
+    lastTaken = other.lastTaken ? lookup[other.lastTaken->pos] : nullptr;
 
     // copy taken moves
     auto otherTaken = other.firstTaken;
@@ -79,7 +79,7 @@ void Moves::assign(const Moves& other){
 }
 
 void Moves::add(unsigned player, unsigned piece, unsigned pos){
-    update(pos, firstEmpty, lastEmpty, firstTaken, lastTaken);
+    update(pos, &firstEmpty, &lastEmpty, &firstTaken, &lastTaken);
     --numEmpty;
     ++numTaken;
     lookup[pos]->player = player;
@@ -87,7 +87,7 @@ void Moves::add(unsigned player, unsigned piece, unsigned pos){
 }
 
 void Moves::remove(unsigned pos){
-    update(pos, firstTaken, lastTaken, firstEmpty, lastEmpty);
+    update(pos, &firstTaken, &lastTaken, &firstEmpty, &lastEmpty);
     ++numEmpty;
     --numTaken;
     lookup[pos]->piece = 2; // make it empty
@@ -97,33 +97,34 @@ void Moves::updateNextPiece(unsigned piece){
     pieceCell.piece = piece;
 }
 
+// plus indirection to change the pointers
 void Moves::update(
     unsigned pos, 
-    Cell* fromFirst, 
-    Cell* fromLast, 
-    Cell* toFirst, 
-    Cell* toLast){
+    Move** fromFirst, 
+    Move** fromLast, 
+    Move** toFirst, 
+    Move** toLast){
     // remove from source move group
 
     if(lookup[pos]->prev) // skip from source move pointer chain
         lookup[pos]->prev->next = lookup[pos]->next;
     else // shift head
-        fromFirst = fromFirst->next;
+        *fromFirst = (*fromFirst)->next;
     if(lookup[pos]->next) // if it is not the last item we set the next item
         lookup[pos]->next->prev = lookup[pos]->prev;
     else // shift tail
-        fromLast = fromLast->prev;
+        *fromLast = (*fromLast)->prev;
 
     // add to target move group
-    if(toFirst){
-        toLast->next = lookup[pos];
+    if(*toFirst){
+        (*toLast)->next = lookup[pos];
         lookup[pos]->next = nullptr;
-        lookup[pos]->prev = toLast;
-        toLast = lookup[pos];
+        lookup[pos]->prev = *toLast;
+        *toLast = lookup[pos];
     }
     else{
-        toFirst = lookup[pos];
-        toLast = lookup[pos];
+        *toFirst = lookup[pos];
+        *toLast = lookup[pos];
         lookup[pos]->next = nullptr;
         lookup[pos]->prev = nullptr;
     }
@@ -140,9 +141,9 @@ const Moves::Iterator& Moves::validMoves()
 
 const Moves::Iterator& Moves::takenMoves() 
 {
-    pieceCellpp = iterator.it; // piece will be the one placed on the actual cell iterated
+    pieceCellpp = &(iterator.it); // piece will be the one placed on the actual cell iterated
     size = numTaken; 
     first = firstTaken; 
-    last = lastTaken; 
+    last = lastTaken;
     return iterator; 
 };

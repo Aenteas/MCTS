@@ -4,13 +4,13 @@
 #include <stdexcept>
 
 #include "engine/bot/base/aibotbase.h"
-#include "mast.h"
 #include "engine/game/omega/omega.h"
 #include "engine/bot/scheduler/stopscheduler.h"
-#include "uctnode.h"
 #include "engine/bot/hashtable/rzhashtable.h"
 #include "engine/bot/hashtable/zhashtable.h"
 #include "mcts.h"
+#include "mast.h"
+#include "uctnode.h"
 
 class MCTSBot: public AiBotBase
 {
@@ -25,28 +25,29 @@ public:
     MCTSBot(MCTSBot&&)=delete;
     MCTSBot& operator=(MCTSBot&&)=delete;
 
-    virtual void update(unsigned moveIdx) override;
+    virtual void updateByOpponent(unsigned moveIdx) override;
     void updateGame() override;
 
 private:
     MCTSBase* impl;
+    Omega2 game2;
 };
 
 template<typename G>
-MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget)
+MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget): game2(5)
 {
     try{
         typedef MAST<G> P;
-        P* policy = new P(game);
+        P* policy = new P(game, game2);
         if(recycling){
             if(node == "UCT-2"){
                 typedef UCTNode<G, P> N;
                 typedef RZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
-                N::setup(&game, policy);
+                N::setup(&game, &game2, policy);
                 auto table = new T(game.getMoveNum(), 20, budget);
                 S* scheduler = new S(timeLeft, game, *table);
-                impl = new MCTS<N, G, T, P, S>(game, table, policy, scheduler);
+                impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
             }
             else
                 throw std::invalid_argument( "Invalid node string: " + node + " received" );
@@ -56,10 +57,10 @@ MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget)
                 typedef UCTNode<G, P> N;
                 typedef ZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
-                N::setup(&game, policy);
+                N::setup(&game, &game2, policy);
                 auto table = new T(game.getMoveNum(), 20);
                 S* scheduler = new S(timeLeft, game, *table);
-                impl = new MCTS<N, G, T, P, S>(game, table, policy, scheduler);
+                impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
             }
             else
                 throw std::invalid_argument( "Invalid node string: " + node + " received" );

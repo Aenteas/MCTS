@@ -1,6 +1,7 @@
 #ifndef UCTNODE_H
 #define UCTNODE_H
 
+#include <iostream>
 #include <vector>
 
 /**********************************************************************************
@@ -37,7 +38,7 @@ public:
     UCTNode(UCTNode&&)=default;
     ~UCTNode()=default;
 
-    static void setup(G* game, P* policy);
+    static void setup(G* game, Omega2* game2, P* policy);
     void reset(UCTNode<G, P>* parent);
 
     template<template<typename> typename T>
@@ -63,13 +64,14 @@ public:
 protected:
     UCTNode(UCTNode& parent = nullptr);
 
-    inline double actionScore(UCTNode<G, P>* child, typename G::Move move, unsigned int childIdx, double logc) const;
+    inline double actionScore(UCTNode<G,P>* child, typename G::Move move, unsigned int childIdx, double logc) const;
 
     double mean;
     double vCount;
 
-    inline thread_local static P* policy;
-    inline thread_local static G* game;
+    inline static P* policy;
+    inline static G* game;
+    inline static Omega2* game2;
 
     // We only store statistics for the available moves (children) to spare memory. As a result, we can not use
     // update items by direct move indexing (somewhat slower)
@@ -77,9 +79,10 @@ protected:
 };
 
 template<typename G, typename P>
-void UCTNode<G, P>::setup(G* game, P* policy)
+void UCTNode<G, P>::setup(G* game, Omega2* game2, P* policy)
 {
     UCTNode<G, P>::game = game;
+    UCTNode<G, P>::game2 = game2;
     UCTNode<G, P>::policy = policy;
 }
 
@@ -89,6 +92,8 @@ UCTNode<G, P>::UCTNode(UCTNode<G, P>* parent):
     mean(0.5)
 {
     vCount = game->getValidMoves().size();
+    if(vCount != game2->getValidMoves().size())
+        std::cout << "DIFF size uct" << std::endl;
     vCounts = std::vector<double> (vCount, 1);
 }
 
@@ -97,7 +102,9 @@ void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
     this->parent = parent;
     mean = 0.5;
     vCount = game->getValidMoves().size();
-    // here there is a potential for heap allocation when the number of valid moves increases in a new position like in chess
+    if(vCount != game2->getValidMoves().size())
+        std::cout << "DIFF validmovesize uct" << std::endl;
+    // here there is a potential for heap allocation when the number of valid moves can increase in a new position like in chess
     // in other games like gomoku and omega this is not the case
     // alternatively we could preallocate size to the maximum number of valid moves to avoid heap allocation but
     // that would be at the expense of increasing memory footprint
@@ -120,8 +127,16 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     double score;
     unsigned int idx=0;
     double logc = c * log(vCount + 1);
+    const auto& moves = game2->getValidMoves().cbegin();
     for(const auto& move : game->getValidMoves()){
         unsigned moveIdx = game->getMoveIdx(move.piece, move.idx);
+        if(move.piece != moves.getPiece())
+            std::cout << "DIFF piece uct" << std::endl;
+        if(move.idx != moves.getPos())
+            std::cout << "DIFF pos uct" << std::endl; 
+        if(game2->toMoveIdx(moves.getPiece(), moves.getPos()) != moveIdx)
+            std::cout << "DIFF conv uct" << std::endl;
+
         UCTNode<G, P>* child = table->select(moveIdx);
         score = actionScore(child, move, idx, logc);
         if(score > maxScore){
@@ -131,6 +146,7 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
             bestIdx = idx;
         }
         ++idx;
+        ++moves;
     }
 
     // When we choose to visit an unexplored state we stop the selection phase and will expand the node with the new child
@@ -138,6 +154,7 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     if(bestChild)
         table->update(bestMoveIdx);
     game->update(bestMoveIdx);
+    game2->update(bestMoveIdx);
     // update visit counts
     ++vCount;
     ++vCounts[bestIdx];
@@ -148,8 +165,12 @@ template<typename G, typename P>
 template<template<typename> typename T>
 UCTNode<G, P>* UCTNode<G, P>::expand(T<UCTNode<G, P>>* const table) {
     unsigned moveIdx = game->getLastMoveIdx();
+    if(moveIdx != game2->getLastMoveIdx())
+        std::cout << "DIFF last uct" << std::endl;
     UCTNode<G, P>* leaf = table->store(moveIdx);
     // simulate an action from leaf
+    if(game->end() != game2->end())
+        std::cout << "DIFF end uct" << std::endl;
     if(!game->end()){
         auto [_, childIdx] = policy->select();
         // update child statistics for leaf
@@ -164,11 +185,16 @@ template<template<typename> typename T>
 void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table){
     UCTNode<G, P>* current = this;
     UCTNode<G, P>* currParent = current->parent;
+    // std::cout << "backprop: " << std::endl;
     while(currParent){
         game->undo();
+        game2->undo();
         // win: 1, draw: 0.5, lose: 0
         // Outcome is from the WHITE player's perspective, val is from the current player's perspective
         double val = outcome+game->getCurrentPlayer()*(1.0-2.0*outcome);
+        // std::cout << "backprop val: " << val << " depth:" << game2->getCurrentDepth() << std::endl;
+        if(game->getCurrentPlayer() != game2->getNextPlayer())
+            std::cout << "DIFF cplayer uct" << std::endl;
         current->mean = (current->mean*(current->vCount-1)+val)/(current->vCount);
         current = currParent;
         currParent = current->parent;
@@ -189,8 +215,12 @@ double UCTNode<G, P>::getVisitCount() const {
 template<typename G, typename P>
 void UCTNode<G, P>::setupBackProp(unsigned depth){
     // update game with the leaf node state as preparation for backprop
-    while(game->getCurrentDepth() != depth)
+    while(game->getCurrentDepth() != depth){
         game->undo();
+        game2->undo();
+        if(game2->getCurrentDepth() != game->getCurrentDepth())
+            std::cout << "DIFF depth uct" << std::endl;
+    }
 }
 
 #endif // UCTNODE_H

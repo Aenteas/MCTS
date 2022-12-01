@@ -36,8 +36,12 @@ public:
     struct Iterator
     {
         friend class Moves;
-        using value = Move;
+
+        using difference_type = std::ptrdiff_t;
+        using value_type = Move;
         using pointer = Move*;
+        using reference = Move&;
+        using iterator_category = std::input_iterator_tag;
 
         Iterator(const Moves& parent) : it(nullptr), parent{parent} {}
 
@@ -49,12 +53,24 @@ public:
         unsigned getPos() const { return it->pos; }
 
         // no post increment/decrement operators
-        const Iterator& operator++() const { it=it->next; return *this; }
-        const Iterator& operator--() const { it=it->prev; return *this; }
+        const Iterator& operator++() const { 
+            it=it->next; 
+            return *this; 
+        }
+        const Iterator& operator--() const { 
+            it=it->prev; 
+            return *this; 
+        }
 
         // returning constant references on the same iterator instance. Be aware when using with multithreading
-        const Iterator& cbegin() const { it = parent.first; return *this; }
-        const Iterator& crbegin() const { it = parent.last; return *this; }
+        const Iterator& cbegin() const { 
+            it = parent.first; 
+            return *this; 
+        }
+        const Iterator& crbegin() const { 
+            it = parent.last; 
+            return *this; 
+        }
 
         // iterator can be used in simple while loop
         operator bool() const{ return it != nullptr; }
@@ -75,10 +91,10 @@ public:
 private:
     void update(
         unsigned pos, 
-        Move* fromFirst, 
-        Move* fromLast, 
-        Move* toFirst, 
-        Move* toLast);
+        Move** fromFirst, 
+        Move** fromLast, 
+        Move** toFirst, 
+        Move** toLast);
     // iterating in randomly ordered moves
     std::vector<Move> moves;
     // lookup with O(1) access to items from moves

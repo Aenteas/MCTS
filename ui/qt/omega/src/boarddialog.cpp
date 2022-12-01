@@ -298,7 +298,7 @@ void BoardDialog::updateGameState(Omega::Piece piece, unsigned cellIdx){
         if(piece == Omega::BLACKPIECE)
             switchTimers();
         if(aiBot){
-            aiBot->update(moveIdx);
+            aiBot->updateByOpponent(moveIdx);
             // aibot's turn
             if(piece == Omega::BLACKPIECE){
                 canvas->active = false;

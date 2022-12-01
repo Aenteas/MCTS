@@ -717,7 +717,7 @@ def create_cmakelists(tree):
     def create_cmakelists_helper(tree, rpath):
         for folder in tree.keys():
             curr_rpath = os.path.join(rpath, folder)
-            # directory with subdiectories
+            # directory with subdirectories
             if(tree[folder]):
                 with open(os.path.join(cmake_root, curr_rpath, "CMakeLists.txt"), 'w') as f:
                     f.write(header_content() + inspect.cleandoc(caller_content(curr_rpath, tree[folder].keys())))

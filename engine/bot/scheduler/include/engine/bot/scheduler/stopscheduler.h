@@ -115,8 +115,8 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
 
 template<typename G, typename T>
 bool StopScheduler<G, T>::finish(){
-    ++num;
     ++numPlayouts;
+    ++num;
     // Make sure that reserve time is large enough to run full cycles at least frequency times otherwise
     // it is not quaranteed that the AI does not run out of time
     if(fmod(numPlayouts+1, freq) != 0.0)
@@ -151,11 +151,11 @@ bool StopScheduler<G, T>::finish(){
     if(bestNode){
         // most likely there is no way for the AI to win
         if(bestNode->getStateScore() < 0.01 and elapsedmsecs >= 500){
-            return false;
+            return true;
         }
         // most likely the AI won
         if(bestNode->getStateScore() > 0.99 and elapsedmsecs >= 500){
-            return false;
+            return true;
         }
     }
     // check if the best node can change within the dedicated time frame
@@ -163,7 +163,7 @@ bool StopScheduler<G, T>::finish(){
     double minPlayouts = maxScore - secondMaxScore;
     // check if the expected number of playouts that can be carried out within the dedicated time frame is smaller
     if(minPlayouts > p / w * speed * (msecsBudget - elapsedmsecs)){
-        return false;
+        return true;
     }
     return false;
 }
@@ -176,7 +176,6 @@ void StopScheduler<G, T>::schedule(){
     n = game.getNumExpectedMoves();
     w  = (a*n*n + b*n + c);
     msecsBudget = w / n * (rmsecs > 0 ? rmsecs : 1);
-    msecsBudget = 10000;
 }
 
 #endif // STOPSCHEDULER_H
