@@ -24,9 +24,11 @@ N* Node::selectMostVisited(T<N>* const  table, G* game, Omega2* game2){
     double maxVisit = -1;
     unsigned int bestMoveIdx;
     N* bestChild;
-    const auto& moves = game2->getValidMoves().cbegin();
-    for(unsigned int moveIdx : game->getValidMoveIdxs()){
-        if(game2->toMoveIdx(moves.getPiece(), moves.getPos()) != moveIdx)
+    const auto& moves = game->getValidMoves().cbegin();
+    auto it = game2->getValidMoveIdxs().begin();
+    while(moves){
+        unsigned moveIdx = *it;
+        if(game->toMoveIdx(moves.getPiece(), moves.getPos()) != moveIdx)
             std::cout << "DIFF node" << std::endl;
         N* child = table->select(moveIdx);
         double visit = child ? child->getVisitCount() : 0;
@@ -36,6 +38,7 @@ N* Node::selectMostVisited(T<N>* const  table, G* game, Omega2* game2){
             bestMoveIdx = moveIdx;
         }
         ++moves;
+        ++it;
     }
     if(bestChild)
         table->update(bestMoveIdx);

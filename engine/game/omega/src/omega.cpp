@@ -3,662 +3,274 @@
 #include <algorithm>
 #include <cmath>
 
+using namespace std;
+
 // ---- initializations ----
 
-Omega::Omega(unsigned boardSize):
-    boardSize{boardSize},
-    bitmapSize{sizeof(long int)*8},
-    currentPiece{WHITEPIECE},
-    playerScores{0,0},
-    cellNum{computeCellNum(boardSize)},
-    validMoves{cellNum},
-    currentPlayer{Player::WHITE},
-    previousPlayer{Player::WHITE},
-    depth(0)
+Omega::Omega(unsigned boardSize) :   Game<Omega>(boardSize),
+                                     boardSize{boardSize},
+                                     cellNum{computeCellNum(boardSize)},
+                                     moves{cellNum},
+                                     nextPiece(0),
+                                     mark(true)
 {
     // each player should have equal moves so we divide by 4
-    numSteps = cellNum - cellNum%4;
+    numSteps = cellNum - cellNum % 4;
+
+    queue.reserve(numSteps);
     // we need as much bits to be able to represent each cell on the board
-    freeNeighbourBitMapSize = (cellNum+bitmapSize-1)/bitmapSize;
     initCells();
 }
 
-inline bool Omega::isValidAx(const Ax& ax)
+void Omega::assign(const Omega &other)
 {
-    return std::abs(ax.q)<=boardSize-1 and std::abs(ax.r)<=boardSize-1 and std::abs(ax.q + ax.r)<=boardSize-1;
+    moves.assign(other.moves);
+    numSteps = other.numSteps;
+    depth = other.depth;
+    nextPiece = other.nextPiece;
+    nextPlayer = other.nextPlayer;
 }
 
-void Omega::setNeighbours(Cell& cell){
-    vector<Ax> neighbourAxs = {{cell.q-1, cell.r+1},
-                               {cell.q-1, cell.r},
-                               {cell.q, cell.r-1},
-                               {cell.q+1, cell.r-1},
-                               {cell.q+1, cell.r},
-                               {cell.q, cell.r+1}};
-    //clockwise order and consecutive cells should neighbours of each other
+unsigned Omega::computeCellNum(unsigned boardSize) const
+{
+    unsigned numRows = 2 * boardSize - 1;
+    return boardSize * numRows + (numRows - 3) / 2 * ((numRows - 3) / 2 + 1) + boardSize - 1;
+}
+
+inline bool Omega::isValidAx(const Ax &ax)
+{
+    return std::abs(ax.q) <= boardSize - 1 and std::abs(ax.r) <= boardSize - 1 and std::abs(ax.q + ax.r) <= boardSize - 1;
+}
+
+inline Omega::Hexagon *Omega::axToHexP(const vector<vector<Hexagon *>> &board, Ax ax)
+{
+    return board[ax.q + boardSize - 1][ax.q >= 0 ? ax.r + boardSize - 1 : ax.r + boardSize - 1 + ax.q];
+}
+
+void Omega::setNeighbours(Hexagon &hex, const vector<vector<Hexagon *>> &board, int q, int r)
+{
+    vector<Ax> neighbourAxs = {{q - 1, r + 1},
+                               {q - 1, r},
+                               {q, r - 1},
+                               {q + 1, r - 1},
+                               {q + 1, r},
+                               {q, r + 1}};
+    // clockwise order and consecutive cells should be neighbours of each other
     vector<unsigned> idxs;
     // top edge
-    if(cell.q == -boardSize+1 and cell.r > 0){
-        idxs = {2,3,4,5,0,1};
-    }
+    if (q == -boardSize + 1 and r > 0)
+        idxs = {2, 3, 4, 5, 0, 1};
     // top right edge
-    else if(cell.r == boardSize-1 and cell.q > -boardSize+1){
-        idxs = {1,2,3,4,5,0};
-    }
+    else if (r == boardSize - 1 and q > -boardSize + 1)
+        idxs = {1, 2, 3, 4, 5, 0};
     // bottom right edge
-    else if(cell.r >=0 and cell.q > 0){
-        idxs = {0,1,2,3,4,5};
-    }
+    else if (r >= 0 and q > 0)
+        idxs = {0, 1, 2, 3, 4, 5};
     // bottom edge
-    else if(cell.q == boardSize-1 and cell.r < 0){
-        idxs = {5,0,1,2,3,4};
-    }
+    else if (q == boardSize - 1 and r < 0)
+        idxs = {5, 0, 1, 2, 3, 4};
     // bottom left edge
-    else if(cell.r == -boardSize+1 and cell.q > 0){
-        idxs = {4,5,0,1,2,3};
-    }
+    else if (r == -boardSize + 1 and q > 0)
+        idxs = {4, 5, 0, 1, 2, 3};
     // top left edge and interior areas
-    else{
-        idxs = {3,4,5,0,1,2};
-    }
+    else
+        idxs = {3, 4, 5, 0, 1, 2};
 
-    for(unsigned idx : idxs){
-        Ax ax = neighbourAxs[idx];
-        if(isValidAx(ax)) cell.neighbours.push_back(&axToCell(ax));
-    }
-}
-
-unsigned Omega::computeCellNum(unsigned boardSize) const{
-    unsigned numRows = 2*boardSize-1;
-    return boardSize*numRows+(numRows-3)/2*((numRows-3)/2+1)+boardSize-1;
-}
-
-void Omega::initCells(){
-    cells.reserve(2*boardSize-1);
-    cellVec.reserve(cellNum);
-    unsigned idx = 0;
-    for (int q = -boardSize+1; q < boardSize; q++)
+    hex.neighbours.reserve(6);
+    for (unsigned idx : idxs)
     {
-        cells.push_back({});
+        Ax ax = neighbourAxs[idx];
+        if (isValidAx(ax))
+            hex.neighbours.push_back(axToHexP(board, ax));
+    }
+}
+
+void Omega::initCells()
+{
+    vector<vector<Hexagon *>> board;
+    board.reserve(2 * boardSize - 1);
+    hexagons.reserve(cellNum);
+    vector<Ax> axes;
+    axes.reserve(cellNum);
+    for (unsigned i = 0; i < cellNum; ++i)
+        hexagons.push_back({i});
+
+    unsigned idx = 0;
+    for (int q = -boardSize + 1; q < boardSize; q++)
+    {
+        board.push_back({});
         // we are setting raw pointers on the container while pushing back the items
         // reserving prevents the push_back operator from changing the address
-        cells[q+boardSize-1].reserve(2*boardSize-1 - std::abs(q));
-        for (int r = -boardSize+1; r < boardSize; r++)
+        board[q + boardSize - 1].reserve(2 * boardSize - 1 - std::abs(q));
+        for (int r = -boardSize + 1; r < boardSize; r++)
         {
-            if(isValidAx({q, r}))
+            if (isValidAx({q, r}))
             {
-                cells[q+boardSize-1].push_back({q, r, idx});
-
-                cellVec.push_back(&cells[q+boardSize-1][cells[q+boardSize-1].size()-1]);
+                axes.push_back({q, r});
+                board[q + boardSize - 1].push_back(&hexagons[idx]);
                 ++idx;
             }
         }
     }
-    for(Cell* cell : cellVec) setNeighbours(*cell);
+    for (unsigned int i = 0; i < cellNum; ++i)
+        setNeighbours(hexagons[i], board, axes[i].q, axes[i].r);
 }
 
-// ---- forward updates ----
+// ----- updates ------
 
-void Omega::update(unsigned moveIdx){
-    moveIdxs.push_back(moveIdx);
-    unsigned cellIdx = getLastPieceMoveIdx();
-    validMoves.remove(cellIdx);
-    Cell& cell = idxToCell(cellIdx);
-    cell.color = (Player)currentPiece;
-    mergeGroups(cell);
-    // updateNeighbourBitMaps(cell);
+void Omega::select(unsigned moveIdx)
+{
+    unsigned pos = toPos(moveIdx);
+    moves.add(nextPlayer, nextPiece, pos);
+    hexagons[pos].mark = mark; // update with new mark
     --numSteps;
-    updateColors();
     ++depth;
+    nextPiece = depth & 1u;          // modulo 2 -> every turn switch piece color
+    nextPlayer = (depth & 2u) >> 1u; // every second turn switch players
+    moves.updateNextPiece(nextPiece);
 }
-
-void Omega::updateColors(){
-    if(currentPiece == WHITEPIECE){
-        currentPiece = BLACKPIECE;
-        previousPlayer = previousPlayer == Player::WHITE? Player::BLACK : Player::WHITE;
-    }
-    else{
-        previousPlayer = currentPlayer;
-        currentPlayer = currentPlayer == Player::WHITE? Player::BLACK : Player::WHITE;
-        currentPiece = WHITEPIECE;
-    }
-}
-
-void Omega::mergeGroups(Cell& cell)
-{
-    Player color = cell.color;
-    unsigned newGroupSize=1;
-
-    //the array of neighbour super groups
-    list<unsigned> addedNeighbourSuperGroupIds;
-    if(groups[color].size()>0){
-        addedNeighbourSuperGroupIds = cell.getNeighbourGroupIds(groups[color], color);
-    }
-    else{
-        playerScores[color] = 1;
-        goto singleGroup;
-    }
-
-    //If there is no neighbour of the same color
-    if(addedNeighbourSuperGroupIds.size()==0)
-    {
-        singleGroup:
-        // create a new group with size 1
-        unsigned groupId = groups[color].size();
-        cell.groupId = groupId;
-        groups[color].push_back({groupId, newGroupSize});
-        return;
-    }
-
-    // the first is going to be the new supergroup id
-    unsigned moveGroupId = addedNeighbourSuperGroupIds.front();
-
-    //update the groupnum of the cell
-    cell.groupId = moveGroupId;
-
-    // update neighbour groups and compute new group size
-    for(unsigned nGroupId: addedNeighbourSuperGroupIds)
-    {
-        Group& neighbourGroup = groups[color][nGroupId];
-        // add the size of the groups to the size of the new group
-        newGroupSize += neighbourGroup.size;
-        playerScores[color] /= neighbourGroup.size;
-
-        // update neighbour group with new super group id
-        neighbourGroup.id = moveGroupId;
-    }
-    // we only store the other groups
-    addedNeighbourSuperGroupIds.pop_front();
-
-    // add the list of group numbers of other groups'
-    Group& group = groups[color][moveGroupId];
-    group.addedGroupIds[color].push(std::move(addedNeighbourSuperGroupIds));
-
-    group.size = newGroupSize;
-    //update the new groupsize and add the addedgroups
-    playerScores[color] *= newGroupSize;
-}
-
-void Omega::updateNeighbourBitMaps(Cell& cell)
-{
-    // get color, group, idx of the piece that has been placed
-    unsigned groupId = cell.groupId;
-    Player color = cell.color;
-    Player oppColor = color == WHITE?BLACK:WHITE;
-    unsigned idx = cell.idx;
-    Group& group = groups[color][groupId];
-
-    // the index of the long value
-    unsigned bitMapIdx=idx/bitmapSize;
-    // the bit position in the long value
-    unsigned bitPos=idx-bitMapIdx*bitmapSize;
-
-    // init neighbourmap of the group
-    group.freeNeighbourBitMaps.push(vector<long int>(freeNeighbourBitMapSize));
-
-    if(group.size > 1){
-        //merge the bitmaps of the old groups to the new
-        mergeNeighbourBitMaps(cell);
-    }
-
-    //remove the field of the move from the map as it is taken
-    group.freeNeighbourBitMaps.top()[bitMapIdx]&=~(1<<bitPos);
-
-    list<unsigned> oppNGroupIds = cell.getNeighbourGroupIds(groups[oppColor], oppColor);
-
-    // we keep the values for backward update
-    group.addedGroupIds[oppColor].push(oppNGroupIds);
-    if(oppNGroupIds.size() > 0){
-        // set the bit index of the move to zero in groups of the opposite color
-        for(unsigned oppNeighbourGroupId : group.addedGroupIds[oppColor].top())
-            groups[oppColor][oppNeighbourGroupId].freeNeighbourBitMaps.top()[bitMapIdx]&=~(1<<bitPos);
-    }
-
-    //add the free neighbours around the cell
-    // iterate over the neighbours
-    for(const Cell* nCell : cell.neighbours)
-    {
-        if(nCell->color==Player::DRAW)
-        {
-            bitMapIdx=nCell->idx/bitmapSize;
-            bitPos=nCell->idx-bitMapIdx*bitmapSize;
-            group.freeNeighbourBitMaps.top()[bitMapIdx]|=(1<<bitPos);
-        }
-    }
-}
-
-void Omega::mergeNeighbourBitMaps(Cell& cell)
-{
-    unsigned groupId = cell.groupId;
-    Player color = cell.color;
-    Group& group = groups[color][groupId];
-    unsigned i;
-    // we check each connected group neighbour map and use bitwise or (bit value 1 means free neighbour)
-    for(unsigned nGroupId : group.addedGroupIds[color].top())
-    {
-        // iterate over the long values of the map
-        i = 0;
-        for(const auto& bMap : groups[color][nGroupId].freeNeighbourBitMaps.top()){
-            // bitwise or
-            group.freeNeighbourBitMaps.top()[i] |= bMap;
-            ++i;
-        }
-    }
-}
-
-// ---- backward updates ----
 
 void Omega::undo()
 {
-    // we expect that the caller do not call when there is no taken cells
-    Cell& cell = idxToCell(getLastPieceMoveIdx());
-
-    // undoOppBitMaps(cell);
-    decomposeGroup(cell);
     ++numSteps;
-    undoColors();
-
-    validMoves.undo();
-    moveIdxs.pop_back();
     --depth;
+    nextPiece = depth & 1u;  // modulo 2 -> every turn switch piece color
+    nextPlayer = (depth & 2u) >> 1u; // every second turn switch players
+    // no need to update moves as they only used at the terminal state when calculating the outcome
 }
 
-void Omega::undoColors(){
-    if(currentPiece == WHITEPIECE){
-        currentPiece = BLACKPIECE;
-        currentPlayer = currentPlayer == Player::WHITE? Player::BLACK : Player::WHITE;
-    }
-    else
-        currentPiece = WHITEPIECE;
-}
+// ----- queries ------
 
-void Omega::decomposeGroup(Cell& cell)
+inline Omega::Hexagon& Omega::idxToHex(unsigned idx)
 {
-    Player color = cell.color;
-    cell.color = Player::DRAW;
-    Player oppColor = color == Player::WHITE?Player::BLACK:Player::WHITE;
-    unsigned groupId = cell.groupId;
-    Group& group = groups[color][groupId];
-
-    // no connection, just remove the group
-    if(group.size==1)
-    {
-        groups[color].pop_back();
-        return;
-    }
-    playerScores[color] /= group.size;
-
-    //decrease the size with the removed field
-    --group.size;
-
-    // group was already existing, we remove the last bitmap
-    // group.freeNeighbourBitMaps.pop();
-
-    // restore component groups
-    for(unsigned cGroupId : group.addedGroupIds[color].top()){
-        Group& component = groups[color][cGroupId];
-        playerScores[color] *= component.size;
-        group.size -= component.size;
-        component.id = cGroupId;
-    }
-
-    // group was already existing multiply back with the original size
-    playerScores[color] *= group.size;
-
-    group.addedGroupIds[color].pop();
-    // group.addedGroupIds[oppColor].pop();
+    return hexagons[idx];
 }
 
-void Omega::undoOppBitMaps(const Cell& cell)
+const array<double, 2>& Omega::scores()
 {
-    // get color, group, idx of the piece has been placed
-    unsigned groupId = cell.groupId;
-    Player color = cell.color;
-    Player oppColor = color == Player::WHITE?Player::BLACK:Player::WHITE;
-    unsigned idx = cell.idx;
-
-    Group& group = groups[color][groupId];
-
-    // the index of the long value
-    unsigned bitMapIdx=idx/bitmapSize;
-    // the bit position in the long value
-    unsigned bitPos=idx-bitMapIdx*bitmapSize;
-
-    //set the bit of the move on the map of each group of the opposite color
-    for(unsigned oppNeighbourGroupId : group.addedGroupIds[oppColor].top())
+    playerScores[0] = 1;
+    playerScores[1] = 1;
+    const auto& takenMoves = moves.takenMoves().cbegin();
+    unsigned start = 0;
+    unsigned end = 0;
+    while (takenMoves)
     {
-        Group& oppGroup = groups[oppColor][oppNeighbourGroupId];
-        oppGroup.freeNeighbourBitMaps.top()[bitMapIdx]|=(1<<bitPos);
-    }
-}
-
-// ---- bit manipulations ----
-
-unsigned Omega::popCnt64(uint64_t i) {
-    // SWAR algorithm
-    i = i - ((i >> 1) & 0x5555555555555555);
-    i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
-    return (((i + (i >> 4)) & 0x0F0F0F0F0F0F0F0F) *
-            0x0101010101010101) >> 56;
-}
-
-// ---- inline internal functions ----
-
-inline Cell& Omega::idxToCell(unsigned idx){
-    return *cellVec[idx];
-}
-
-inline Cell& Omega::axToCell(Ax ax){
-    return cells[ax.q+boardSize-1][ax.q >= 0? ax.r+boardSize-1: ax.r+boardSize-1+ax.q];
-}
-
-inline unsigned Omega::axToIdx(Ax ax) const{
-    return cells[ax.q+boardSize-1][ax.q >= 0? ax.r+boardSize-1: ax.r+boardSize-1+ax.q].idx;
-}
-
-// ---- queries ----
-vector<array<array<vector<double>, 2>, 2>> Omega::getInitialPolicy(){
-    // compute initial policy by simulating n random playouts and averaging the results based on the outcome
-    // we could save the results to a file
-    unsigned n = 10000;
-    array<array<vector<double>, 2>, 2> scores;
-    scores.fill({{vector<double>(cellNum, 0.5), vector<double>(cellNum, 0.5)}});
-
-    array<vector<double>, 2> counts;
-    counts.fill(vector<double>(cellNum, 1.0));
-
-    vector<unsigned> cellIdxs;
-    cellIdxs.reserve(cellNum);
-    for(int idx = 0; idx < cellNum; ++idx)
-        cellIdxs.push_back(idx);
-    unsigned startNumSteps = numSteps;
-    for(unsigned i = 0; i < n; ++i){
-        random_shuffle(cellIdxs.begin(), cellIdxs.end());
-        while(numSteps > 0)
-            update(cellIdxs[numSteps-1] + (numSteps % 2) * cellNum);
-        double outcome = getScore();
-        while(numSteps < startNumSteps){
-            auto move = getLastMove();
-            scores[Player::WHITE][move.piece][move.idx] =
-            (scores[Player::WHITE][move.piece][move.idx] * counts[move.piece][move.idx] + outcome) / (counts[move.piece][move.idx]+1);
-            scores[Player::BLACK][move.piece][move.idx] =
-            (scores[Player::BLACK][move.piece][move.idx] * counts[move.piece][move.idx] + 1 - outcome) / (counts[move.piece][move.idx]+1);
-            ++counts[move.piece][move.idx];
-            undo();
+        // BFS on each occupied hexagons to get the connected groups, then multiply their sizes together
+        unsigned groupSize = 0;
+        unsigned pos = takenMoves.getPos();
+        unsigned piece = takenMoves.getPiece();
+        if (hexagons[pos].mark == mark)
+        { // visited ? taken so should not be empty
+            hexagons[pos].mark = !mark;
+            ++groupSize;
+            queue[end] = &hexagons[pos];
+            ++end;
+            while (end - start > 0)
+            { // not empty
+                auto hex = queue[start];
+                for (Hexagon *neighbour : hex->neighbours)
+                {
+                    if (neighbour->mark == mark && piece == moves[neighbour->idx].piece)
+                    {                            // visited ?, same type of piece as seed ?
+                        neighbour->mark = !mark; // set to visited
+                        queue[end] = neighbour;  // add to queue
+                        ++groupSize;
+                        ++end;
+                    }
+                }
+                ++start; // remove front from queue
+            }
+            playerScores[piece] *= groupSize;
         }
+        ++takenMoves;
     }
-    playerScores = {0, 0};
-    return vector<array<array<vector<double>, 2>, 2>>(cellNum, scores);
-}
-
-Omega::Player Omega::getCurrentPlayer() const{
-    return currentPlayer;
-}
-
-Omega::Player Omega::getPreviousPlayer() const{
-    return previousPlayer;
-}
-
-Omega::Player Omega::getLeader() const{
-    if(playerScores[Player::WHITE] > playerScores[Player::BLACK])
-        return Player::WHITE;
-    else if(playerScores[Player::WHITE] < playerScores[Player::BLACK])
-        return Player::BLACK;
-    return Player::DRAW;
-}
-
-Omega::Piece Omega::getCurrentPiece() const{
-    return currentPiece;
-}
-
-double Omega::getScore() const{
-    if(playerScores[Player::WHITE] > playerScores[Player::BLACK])
-        return 1.0;
-    else if(playerScores[Player::WHITE] < playerScores[Player::BLACK])
-        return 0.0;
-    return 0.5;
-}
-
-array<double, 2> Omega::getPlayerScores() const{
+    const auto &emptyCells = moves.validMoves().cbegin();
+    // set rest of the hexagons to visited
+    while (emptyCells)
+    {
+        hexagons[emptyCells.getPos()].mark = !mark;
+        ++emptyCells;
+    }
+    // negate mark so no need to update marks for every hexagon when calling score next time
+    mark = !mark;
+    start = 0;
+    end = 0;
     return playerScores;
 }
 
-Omega::Move Omega::getLastMove() const{
-    unsigned idx = moveIdxs.back();
-    return Move(previousPlayer, currentPiece == WHITEPIECE?BLACKPIECE:WHITEPIECE, idx%cellNum);
+unsigned Omega::getLastPlayer() const
+{
+    if (nextPiece)
+        return nextPlayer;
+    else
+        return 1 - nextPlayer;
 }
 
-unsigned Omega::getLastPieceMoveIdx() const{
-    return moveIdxs.back()%cellNum;
+const Moves::Iterator &Omega::getValidMoves()
+{
+    return moves.validMoves();
 }
 
-unsigned Omega::getLastMoveIdx() const{
-    return moveIdxs.back();
+const Moves::Iterator &Omega::getTakenMoves()
+{
+    return moves.takenMoves();
 }
 
-Omega::ValidMoves Omega::getValidMoveIdxs() const{
-    return validMoves;
+const Moves::Iterator &Omega::getLastMove()
+{
+    return moves.takenMoves().crbegin();
 }
 
-vector<Omega::Move> Omega::getValidMoves() const{
-    vector<Omega::Move> res;
-    res.reserve(validMoves.mSize);
-    unsigned corr = currentPiece == WHITEPIECE?0:cellNum;
-    for(const unsigned idx : validMoves){
-        res.emplace_back(currentPlayer, currentPiece, idx - corr);
-    }
-    return res;
+unsigned Omega::getLastMoveIdx()
+{
+    auto lastMove = getLastMove();
+    return toMoveIdx(lastMove.getPiece(), lastMove.getPos());
 }
 
-vector<Omega::Move> Omega::getTakenMoves() const{
-    vector<Omega::Move> res;
-    res.reserve(cellNum - validMoves.mSize);
-    Piece piece = Piece::WHITEPIECE;
-    Player player = Player::WHITE;
-    for(unsigned i= 0; i<cellNum - validMoves.mSize;++i){
-        res.emplace_back(player, piece, validMoves.takenCells[i]);
-        piece = (Piece)(1 - piece);
-        if(piece == Player::WHITE)
-            player = (Player)(1 - player);
-    }
-    return res;
+std::vector<unsigned> Omega::getAvailablePieces() const
+{
+    return {nextPiece};
 }
 
-unsigned Omega::getPieceMoveIdx(unsigned moveIdx) const{
-    return moveIdx % cellNum;
+unsigned Omega::getTotalValidMoveNum() const
+{
+    return cellNum * 2;
 }
 
-unsigned Omega::getMoveIdx(Piece piece, unsigned pieceMoveIdx) const{
-    // for Omega color alone identifies piece type
-    return pieceMoveIdx + piece * cellNum;
-}
-
-unsigned Omega::getRandomMove() const {
-    return validMoves.getRandomMove();
-}
-
-unsigned Omega::getNumExpectedMoves() const{
-    return (numSteps + 2) / 4;
-}
-
-unsigned Omega::getMaxNumMoves() const{
-    return (numSteps + 2) / 4;
-}
-
-unsigned Omega::getMoveNum() const{
-    return cellNum*2;
-}
-
-unsigned Omega::getMaxLegalMoveNum() const{
+unsigned Omega::getMaxValidMoveNum() const
+{
     return cellNum;
 }
 
-vector<Omega::Piece> Omega::getAvailablePieces() const{
-    return {currentPiece};
+unsigned Omega::getMaxTurnNum() const
+{
+    return numSteps;
 }
 
-unsigned Omega::getCurrentDepth() const{
-    return depth;
+unsigned Omega::getMaxPlayerTurnNum() const
+{
+    return (numSteps + 2) / 4;
 }
 
-bool Omega::end() const{
+bool Omega::end() const
+{
     return numSteps == 0;
 }
 
-// ---- internal functions ----
+// ---- conversions ----
 
-Omega::ValidMoves::Cell::Cell(unsigned idx):
-    idx{idx},
-    prev{nullptr},
-    next{nullptr}
-{}
-
-Omega::ValidMoves::ValidMoves(unsigned cellNum):
-    cellNum{cellNum},
-    color{0}
+unsigned Omega::toPos(unsigned moveIdx) const
 {
-    mSize = cellNum;
-    takenCells.resize(mSize);
-    cells.reserve(cellNum);
-    lookup.reserve(cellNum);
-    for(unsigned i=0; i<cellNum; ++i)
-        cells.push_back({i});
-    // produce random order
-    // random_shuffle(cells.begin(), cells.end());
-    for(unsigned idx=0; idx<cellNum; ++idx){
-        for(unsigned i=0; i<cellNum; ++i){
-            if(cells[i].idx == idx)
-                lookup.push_back(&cells[i]);
-        }
-    }
-    // set up the chain of pointers
-    first = &cells[0];
-    cells[0].next = &cells[1];
-    for(unsigned i=1; i<cellNum-1; ++i){
-        cells[i].prev = &cells[i-1];
-        cells[i].next = &cells[i+1];
-    }
-    cells[cellNum-1].prev = &cells[cellNum-2];
+    return moveIdx % cellNum;
 }
 
-void Omega::ValidMoves::remove(unsigned idx){
-    color = color == 1 ? 0 : 1;
-    // if it is not the first item we set the previous item
-    if(lookup[idx]->prev)
-        lookup[idx]->prev->next = lookup[idx]->next;
-    else{
-        first = first->next;
-    }
-    // if it is not the last item we set the next item
-    if(lookup[idx]->next)
-        lookup[idx]->next->prev = lookup[idx]->prev;
-    takenCells[cellNum - mSize] = idx;
-    --mSize;
-}
-
-unsigned Omega::ValidMoves::getRandomMove() const {
-    return first->idx + color * cellNum;
-}
-
-void Omega::ValidMoves::undo(){
-    color = color == 1 ? 0 : 1;
-    ++mSize;
-    unsigned prev = takenCells[cellNum - mSize];
-    // if there is no free cells
-    if(!first){
-        first = lookup[prev];
-        return;
-    }
-    // if it was the first
-    if(!lookup[prev]->prev){
-        first->prev = lookup[prev];
-        first = lookup[prev];
-    } // if it was the last
-    else if(!lookup[prev]->next){
-        lookup[prev]->prev->next = lookup[prev];
-    } // it was an intermediate item
-    else{
-        lookup[prev]->prev->next = lookup[prev];
-        lookup[prev]->next->prev = lookup[prev];
-    }
-}
-
-unsigned Omega::ValidMoves::size() const{
-    return mSize;
-}
-
-unsigned Omega::ValidMoves::prevCellIdx() const{
-    return takenCells[cellNum - mSize];
-}
-
-// ---- Cell and Group structs ----
-
-Cell::Cell(int q, int r, unsigned idx):
-    q{q},
-    r{r},
-    idx{idx},
-    color{Omega::Player::DRAW},
-    groupId{-1}
-{}
-
-Group::Group(const unsigned id, const unsigned newGroupSize):
-    id{id},
-    size{newGroupSize}
-{}
-
-unsigned Cell::findSuperGroup(unsigned id, const vector<Group>& groups) const
+unsigned Omega::toPiece(unsigned moveIdx) const
 {
-    while(true)
-    {
-        // trace back the group id of the connected cells
-        unsigned superId = groups[id].id;
-        if(id == superId) return superId;
-        id = superId;
-    }
+    return moveIdx / cellNum;
 }
 
-list<unsigned> Cell::getNeighbourGroupIds(const vector<Group>& groups, Omega::Player color) const
+unsigned Omega::toMoveIdx(unsigned piece, unsigned pos) const
 {
-    list<unsigned> neighbourSuperGroups;
-    auto it = neighbours.begin();
-    unsigned nGroupId;
-    unsigned firstNGroupId = -1;
-    unsigned counter = 0;
-    // we use a counter instead of comparing with the iterator of end() because step size can be 2
-    while(counter < neighbours.size()){
-        if((*it)->color == color){
-            nGroupId = findSuperGroup((*it)->groupId, groups);
-            // first valid group that is connected
-            if(firstNGroupId == -1){
-                firstNGroupId = nGroupId;
-                neighbourSuperGroups.push_back(firstNGroupId);
-            }
-            // second group should have different id
-            else if(firstNGroupId != nGroupId){
-                neighbourSuperGroups.push_back(nGroupId);
-                counter += 2;
-                std::advance(it, 2); // skip the next one as they would have the same group id
-                break;
-            }
-            ++counter;
-            ++it; // skip the next one as they would have the same group id
-        }
-        ++counter;
-        ++it;
-    }
-    unsigned thirdNGroupId;
-    // the third one should be different from the previous 2 groups
-    while(counter < neighbours.size()){
-        if((*it)->color == color){
-            thirdNGroupId = findSuperGroup((*it)->groupId, groups);
-            if(thirdNGroupId != nGroupId and thirdNGroupId != firstNGroupId){
-                neighbourSuperGroups.push_back(thirdNGroupId);
-                return neighbourSuperGroups; // there are maximum 3 distinct groups
-            }
-        }
-        ++counter;
-        ++it;
-    }
-
-    return neighbourSuperGroups;
+    // for Omega color alone identifies piece type
+    return pos + piece * cellNum;
 }

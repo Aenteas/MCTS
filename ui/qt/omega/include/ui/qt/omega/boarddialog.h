@@ -13,6 +13,8 @@
 #include "qtbotwrapper.h"
 #include "engine/bot/random/randombot.h"
 
+#include "engine/game/omega/omega.h"
+
 namespace Ui {
 class BoardDialog;
 }
@@ -46,7 +48,7 @@ private slots:
     void updateCountdown();
 
 public slots:
-    void updateGameState(Omega::Piece piece, unsigned cellIdx);
+    void updateGameState(unsigned piece, unsigned cellIdx);
     void updateFromAiBot();
 
 private:
@@ -58,7 +60,7 @@ private:
 
     // ---- control panel ----
     void updateControlPanel();
-    void freezeControlPanel(const Omega::Player winner);
+    void freezeControlPanel(const unsigned winner);
 
     // ---- ui ----
     Ui::BoardDialog *ui;
@@ -74,7 +76,7 @@ private:
     inline void initBot();
 
     // ---- game state ----
-    Omega::Player playerColor;
+    unsigned playerColor;
     bool inGame;
     Omega* game;
     QtBotWrapper* aiBot;
@@ -89,7 +91,7 @@ private:
     unsigned blackCounter;
     QTime timeWhite;
     QTime timeBlack;
-    Omega::Player currPlayer;
+    unsigned currPlayer;
 
 signals:
     void back_to_main();

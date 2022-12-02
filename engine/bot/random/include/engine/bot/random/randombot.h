@@ -23,11 +23,13 @@ RandomBot<G>::RandomBot(G& game):
 
 template<typename G>
 void RandomBot<G>::updateGame(){
-    typename G::Player rootPlayer = game.getCurrentPlayer();
-    typename G::Player currPlayer;
+    unsigned rootPlayer = game.getNextPlayer();
+    unsigned currPlayer;
     do{
-        game.update(game.getRandomMove());
-        currPlayer = game.getCurrentPlayer();
+        const auto& moves = game.getValidMoves().cbegin();
+        game.update(game.toMoveIdx(moves.getPiece(), moves.getPos()));
+        currPlayer = game.getNextPlayer();
+        ++moves;
     }while(rootPlayer == currPlayer);
 }
 

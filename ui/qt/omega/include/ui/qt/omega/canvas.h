@@ -63,7 +63,7 @@ private slots:
 
 signals:
     // cell and piece idx
-    void updateGameState(Omega::Piece, unsigned);
+    void updateGameState(unsigned, unsigned);
 };
 
 #endif // CANVAS_H

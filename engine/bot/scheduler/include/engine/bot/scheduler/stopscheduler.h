@@ -87,7 +87,7 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
         throw std::invalid_argument( "freq argument should be at least 2" );
     // compute parabolic time distrubution: m is for the middle and s is for the starting move
     // we are fitting a parabolic curve to 3 points: (x1,y1), (x2,y2), (x3,y3)
-    n = game.getNumExpectedMoves();
+    n = game.getMaxPlayerTurnNum();
     double m = 1.0 + (n/2.0-1.0)/2;
     double s = 1.0;
     double x1 = 1.0;
@@ -134,7 +134,9 @@ bool StopScheduler<G, T>::finish(){
 
     typename extractNodeType<T>::value_type* bestNode;
     typename extractNodeType<T>::value_type* secondBestNode;
-    for(unsigned moveIdx : game.getValidMoveIdxs()){
+    const auto& moves = game.getValidMoves().cbegin();
+    while(moves){
+        unsigned moveIdx = game.toMoveIdx(moves.getPiece(), moves.getPos());
         auto node = table.select(moveIdx);
         score = node ? node->getVisitCount() : 0;
         if(score > maxScore){
@@ -147,6 +149,7 @@ bool StopScheduler<G, T>::finish(){
             secondMaxScore = score;
             secondBestNode = node;
         }
+        ++moves;
     }
     if(bestNode){
         // most likely there is no way for the AI to win
@@ -173,7 +176,7 @@ void StopScheduler<G, T>::schedule(){
     numPlayouts = -1;
     startTime = std::chrono::steady_clock::now();
     int rmsecs = timeLeft.count() - reserveTime;
-    n = game.getNumExpectedMoves();
+    n = game.getMaxPlayerTurnNum();
     w  = (a*n*n + b*n + c);
     msecsBudget = w / n * (rmsecs > 0 ? rmsecs : 1);
 }

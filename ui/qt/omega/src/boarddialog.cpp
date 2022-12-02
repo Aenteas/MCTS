@@ -33,7 +33,7 @@ BoardDialog::BoardDialog(
     blackTimer{nullptr}
 {
     // setup UI and connections
-    playerColor = color == "White" ? Omega::Player::WHITE : Omega::Player::BLACK;
+    playerColor = color == "White" ? 0 : 1;
     connect(this, SIGNAL (back_to_main()), parent, SLOT (back_to_main()));
     if(mode == "vs AI"){
         initBot();
@@ -65,7 +65,7 @@ void BoardDialog::initBot(){
         else if(bot == "Random")
             return new RandomBot<Omega>(*game);
     }();
-    aiBot = new QtBotWrapper(aiBotImpl, playerColor == Omega::WHITE ? timeBlack : timeWhite);
+    aiBot = new QtBotWrapper(aiBotImpl, playerColor == 0 ? timeBlack : timeWhite);
     connect(&(aiBot->thread), SIGNAL (finished()), this, SLOT(updateFromAiBot()));
 }
 
@@ -91,7 +91,7 @@ void BoardDialog::initTimers(){
 
 void BoardDialog::startTimer(bool restart){
     if(restart) initTimers();
-    if(game->getCurrentPlayer() == Omega::Player::WHITE){
+    if(game->getNextPlayer() == 0){
         if(restart or rTimeWhite == 0)
             whiteTimer->start(1);
         else
@@ -106,7 +106,7 @@ void BoardDialog::startTimer(bool restart){
 }
 
 void BoardDialog::stopTimer(){
-    if(game->getCurrentPlayer() == Omega::Player::WHITE){
+    if(game->getNextPlayer() == 0){
         if(whiteTimer){
             rTimeWhite = whiteTimer->remainingTime();
             whiteTimer->stop();
@@ -120,7 +120,7 @@ void BoardDialog::stopTimer(){
 
 void BoardDialog::switchTimers(){
     // stop timer of previous player
-    if(game->getCurrentPlayer() == Omega::Player::BLACK){
+    if(game->getNextPlayer() == 1){
         rTimeWhite = whiteTimer->remainingTime();
         whiteTimer->stop();
     }
@@ -149,7 +149,7 @@ void BoardDialog::on_startButton_clicked()
                 delete aiBot;
                 initBot();
                 // if bot starts the game
-                if(playerColor != Omega::Player::WHITE){
+                if(playerColor != 0){
                     ui->quitButton->setEnabled(false);
                     ui->startButton->setEnabled(false);
                     canvas->active = false;
@@ -176,7 +176,7 @@ void BoardDialog::on_startButton_clicked()
         // start bot if there is one
         if(aiBot){
             // if bot starts the game
-            if(playerColor != Omega::Player::WHITE){
+            if(playerColor != 0){
                 ui->quitButton->setEnabled(false);
                 ui->startButton->setEnabled(false);
                 canvas->active = false;
@@ -206,20 +206,36 @@ void BoardDialog::on_quitButton_clicked()
 }
 
 void BoardDialog::updateControlPanel(){
-    ui->whiteScore->display(game->getPlayerScores()[Omega::Player::WHITE]);
-    ui->blackScore->display(game->getPlayerScores()[Omega::Player::BLACK]);
+    auto scores = game->scores();
+    if(game->getCurrentDepth() == 0){
+        ui->whiteScore->display(0);
+        ui->blackScore->display(0);
+    }
+    else if(game->getCurrentDepth() == 1){
+        ui->whiteScore->display(1);
+        ui->blackScore->display(0);
+    }
+    else{
+        ui->whiteScore->display(scores[0]);
+        ui->blackScore->display(scores[1]);
+    }
     ui->whiteScore->repaint();
     ui->blackScore->repaint();
+    unsigned leader = 2; // draw
+    if(scores[0] > scores[1])
+        leader = 0;
+    else if(scores[0] < scores[1])
+        leader = 1;
     if(game->end()){
-        freezeControlPanel(game->getLeader());
+        freezeControlPanel(leader);
     }
     else{
         if(aiBot){
-            QString description = game->getCurrentPlayer() == playerColor ? QString("your") : QString("the AI's");
+            QString description = game->getNextPlayer() == playerColor ? QString("your") : QString("the AI's");
             ui->description->setText("It's " + description + " turn!");
         }
         else{
-            if(game->getCurrentPlayer() == Omega::Player::WHITE){
+            if(game->getNextPlayer() == 0){
                 ui->description->setText("It's WHITE's turn!");
             }
             else{
@@ -230,20 +246,20 @@ void BoardDialog::updateControlPanel(){
     }
 }
 
-void BoardDialog::freezeControlPanel(const Omega::Player winner){
+void BoardDialog::freezeControlPanel(const unsigned winner){
     QString description;
     if(aiBot){
         if(winner == playerColor)
             description = "You won";
-        else if(winner == Omega::Player::DRAW)
+        else if(winner == 2)
             description = "Draw!";
         else
             description = "The AI won";
     }
     else{
-        if(winner == Omega::Player::WHITE)
+        if(winner == 0)
             description = "White won";
-        else if(winner == Omega::Player::BLACK)
+        else if(winner == 1)
             description = "Black won";
         else
             description = "Draw!";
@@ -271,7 +287,7 @@ void BoardDialog::updateCountdown()
             whiteCounter = 1000;
         }
         if(timeWhite.toString("m:ss:z") == "0:00:0"){
-            freezeControlPanel(Omega::Player::BLACK);
+            freezeControlPanel(1);
         }
         else whiteTimer->start(1);
     }
@@ -283,24 +299,24 @@ void BoardDialog::updateCountdown()
             blackCounter = 1000;
         }
         if(timeBlack.toString("m:ss:z") == "0:00:0"){
-            freezeControlPanel(Omega::Player::WHITE);
+            freezeControlPanel(0);
         }
         else blackTimer->start(1);
     }
 }
 
-void BoardDialog::updateGameState(Omega::Piece piece, unsigned cellIdx){
-    unsigned moveIdx = game->getMoveIdx(piece, cellIdx);
+void BoardDialog::updateGameState(unsigned piece, unsigned cellIdx){
+    unsigned moveIdx = game->toMoveIdx(piece, cellIdx);
     game->update(moveIdx);
     // handles the case when game ends
     updateControlPanel();
     if(!game->end()){
-        if(piece == Omega::BLACKPIECE)
+        if(piece == 1)
             switchTimers();
         if(aiBot){
             aiBot->updateByOpponent(moveIdx);
             // aibot's turn
-            if(piece == Omega::BLACKPIECE){
+            if(piece == 1){
                 canvas->active = false;
                 ui->quitButton->setEnabled(false);
                 ui->startButton->setEnabled(false);
@@ -320,11 +336,11 @@ void BoardDialog::updateFromAiBot(){
         emit back_to_main();
         return;
     }
-    auto moves = game->getTakenMoves();
+    const auto& moves = game->getTakenMoves().crbegin();
     // get last 2 moves to update
-    auto blackCell = moves.back().idx;
-    auto whiteCell = moves[moves.size()-2].idx;
-    canvas->aiBotMovedEvent(whiteCell, blackCell);
+    unsigned blackCell = moves.getPos();
+    --moves;
+    canvas->aiBotMovedEvent(moves.getPos(), blackCell);
     switchTimers();
     // handles the case when game ends
     updateControlPanel();

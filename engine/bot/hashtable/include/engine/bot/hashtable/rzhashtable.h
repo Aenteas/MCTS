@@ -201,7 +201,7 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
 
     // we insert before shifting so we do not need to check if we need to shift it afterwards
     // override the least recently visited leaf node by the new one
-    fifo.front().reset(Base::currKey, Base::currCode, Base::parent, forward<Args>(args)...);
+    fifo.front().reset(Base::currKey, Base::currCode, Base::parent, std::forward<Args>(args)...);
     // set the iterator in the hash table
     auto it = fifo.begin();
     table[code] = it;
@@ -250,7 +250,7 @@ T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
     // if new root is not in table
     if(isEmpty(it)){
         target = fifo.end(); // root will be the last in fifo
-        T* root = store(moveIdx, forward<Args>(args)...);
+        T* root = store(moveIdx, std::forward<Args>(args)...);
         root->parent = nullptr;
         Base::parent = root;
     }

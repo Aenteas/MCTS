@@ -64,7 +64,7 @@ public:
 protected:
     UCTNode(UCTNode& parent = nullptr);
 
-    inline double actionScore(UCTNode<G,P>* child, typename G::Move move, unsigned int childIdx, double logc) const;
+    inline double actionScore(UCTNode<G,P>* child, unsigned int childIdx, double logc) const;
 
     double mean;
     double vCount;
@@ -113,7 +113,7 @@ void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
 }
 
 template<typename G, typename P>
-double UCTNode<G, P>::actionScore(UCTNode<G, P>* child, typename G::Move move, unsigned int childIdx, double logc) const {
+double UCTNode<G, P>::actionScore(UCTNode<G, P>* child, unsigned int childIdx, double logc) const {
     return (child ? child->mean : 0.5) + sqrt(logc / vCounts[childIdx]);
 }
 
@@ -127,18 +127,21 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     double score;
     unsigned int idx=0;
     double logc = c * log(vCount + 1);
-    const auto& moves = game2->getValidMoves().cbegin();
-    for(const auto& move : game->getValidMoves()){
-        unsigned moveIdx = game->getMoveIdx(move.piece, move.idx);
-        if(move.piece != moves.getPiece())
+    const auto& moves = game->getValidMoves().cbegin();
+    auto moves2 = game2->getValidMoves();
+    auto moves2it = moves2.begin();
+    while(moves){
+        auto& move2 = *moves2it;
+        unsigned moveIdx = game->toMoveIdx(moves.getPiece(), moves.getPos());
+        if(move2.piece != moves.getPiece())
             std::cout << "DIFF piece uct" << std::endl;
-        if(move.idx != moves.getPos())
+        if(move2.idx != moves.getPos())
             std::cout << "DIFF pos uct" << std::endl; 
-        if(game2->toMoveIdx(moves.getPiece(), moves.getPos()) != moveIdx)
+        if(game2->getMoveIdx(move2.piece, move2.idx) != moveIdx)
             std::cout << "DIFF conv uct" << std::endl;
-
+        
         UCTNode<G, P>* child = table->select(moveIdx);
-        score = actionScore(child, move, idx, logc);
+        score = actionScore(child, idx, logc);
         if(score > maxScore){
             maxScore = score;
             bestChild = child;
@@ -147,13 +150,14 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
         }
         ++idx;
         ++moves;
+        ++moves2it;
     }
 
     // When we choose to visit an unexplored state we stop the selection phase and will expand the node with the new child
     // During expansion we will update the table by calling store on it so no need to update it here in that case
     if(bestChild)
         table->update(bestMoveIdx);
-    game->update(bestMoveIdx);
+    game->select(bestMoveIdx);
     game2->update(bestMoveIdx);
     // update visit counts
     ++vCount;
@@ -185,15 +189,15 @@ template<template<typename> typename T>
 void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table){
     UCTNode<G, P>* current = this;
     UCTNode<G, P>* currParent = current->parent;
-    // std::cout << "backprop: " << std::endl;
+    std::cout << "backprop: " << std::endl;
     while(currParent){
         game->undo();
         game2->undo();
         // win: 1, draw: 0.5, lose: 0
         // Outcome is from the WHITE player's perspective, val is from the current player's perspective
-        double val = outcome+game->getCurrentPlayer()*(1.0-2.0*outcome);
-        // std::cout << "backprop val: " << val << " depth:" << game2->getCurrentDepth() << std::endl;
-        if(game->getCurrentPlayer() != game2->getNextPlayer())
+        double val = outcome+game->getNextPlayer()*(1.0-2.0*outcome);
+        std::cout << "backprop val: " << val << " depth:" << game2->getCurrentDepth() << std::endl;
+        if(game->getNextPlayer() != game2->getCurrentPlayer())
             std::cout << "DIFF cplayer uct" << std::endl;
         current->mean = (current->mean*(current->vCount-1)+val)/(current->vCount);
         current = currParent;

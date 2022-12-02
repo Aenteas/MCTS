@@ -45,7 +45,7 @@ MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget): ga
                 typedef RZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
                 N::setup(&game, &game2, policy);
-                auto table = new T(game.getMoveNum(), 20, budget);
+                auto table = new T(game.getTotalValidMoveNum(), 20, budget);
                 S* scheduler = new S(timeLeft, game, *table);
                 impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
             }
@@ -58,7 +58,7 @@ MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget): ga
                 typedef ZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
                 N::setup(&game, &game2, policy);
-                auto table = new T(game.getMoveNum(), 20);
+                auto table = new T(game.getTotalValidMoveNum(), 20);
                 S* scheduler = new S(timeLeft, game, *table);
                 impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
             }

@@ -1,268 +1,103 @@
-#ifndef GAMESTATE_H
-#define GAMESTATE_H
+#ifndef OMEGA_H
+#define OMEGA_H
+
+#include "engine/game/base/moves.h"
+#include "engine/game/base/game.h"
 
 #include <vector>
 #include <array>
 
-#include<list>
-#include <stack>
-#include <map>
-
-/**********************************************************************************
- * Omega game engine                                                              *
- * Any 2-player board game should implement a minimal public interface with the   *
- * following functions and members:                                               *
- *                                                                                *
- * enum Player{PLAYER1, PLAYER2, DRAW};                                           *
- * enum Piece{PIECE1, PIECE2, ...};                                               *
- *                                                                                *
- * struct Move{                                                                   *
- *     Player player;                                                             *
- *     Piece piece;                                                               *
- *     unsigned idx;                                                              *
- * };                                                                             *
- * void update(unsigned moveIdx);                                                 *
- * void undo();                                                                   *
- * Player getCurrentPlayer() const;                                               *
- * Player getPreviousPlayer() const;                                              *
- * Player getLeader();                                                            *
- *                                                                                *
- * double getScore();                                                             *
- * array<double, 2> getPlayerScores() const;                                      *
- * Move getLastMove() const;                                                      *
- * unsigned getLastMoveIdx() const;                                               *
- * vector<unsigned> getValidMoveIdxs() const;                                     *
- * vector<Move> getValidMoves() const;                                            *
- * unsigned getPieceMoveIdx(unsigned moveIdx) const;                              *
- * unsigned getRandomMove() const;                                                *
- * unsigned getNumExpectedMoves() const;                                          *
- * unsigned getMaxNumMoves() const;                                               *
- * unsigned getMoveNum() const;                                                   *
- * vector<Piece> getAvailablePieces() const;                                      *
- * unsigned getCurrentDepth() const;                                              *
- * bool end() const;                                                              *
- * array<vector<double>, 2> getInitialPolicy();                                   *
- * static constexpr unsigned PIECENUM = 2;                                        *
- **********************************************************************************/
-
-using namespace std;
-
-struct Ax{
-    int q, r;
-    Ax(int q, int r): q{q}, r{r} {}
-};
-
-struct Cell;
-struct Group;
-
-class Omega
+class Omega: public Game<Omega>
 {
 public:
+
+    struct Ax{
+        int q, r;
+        Ax(int q, int r): q{q}, r{r} {}
+    };
+
+    struct Hexagon{
+        Hexagon(unsigned idx): idx(idx), mark(false) {}
+        // indices of hexagons (row-by-row from left to right from top to bottom)
+        unsigned idx;
+        bool mark; // used to indicate if note is visited or not for BFS
+        std::vector<Hexagon*> neighbours;
+    };
+
     Omega(unsigned boardSize);
 
+    void assign(const Omega&); // assigment to update with root state after search is finished. It is a lightweight
+    // version of the correct assignment operator
     Omega& operator=(const Omega&)=delete;
     Omega(const Omega&)=delete;
     Omega& operator=(Omega&&)=delete;
     Omega(Omega&&)=delete;
 
-    // used for indexing, do not change the numbers
-    enum Piece{WHITEPIECE=0, BLACKPIECE};
-    enum Player{WHITE=0, BLACK, DRAW};
-
-    struct Move{
-        Player player;
-        Piece piece;
-        unsigned idx;
-        Move(Player player, Piece piece, unsigned idx):
-            player(player),
-            piece(piece),
-            idx(idx) {}
-        Move(const Move&)=default;
-    };
-
-    // ---- available moves ----
-    class ValidMoves
-    {
-        // container class for storing the available cells
-    public:
-        ValidMoves(unsigned cellNum);
-        unsigned prevCellIdx() const;
-        void remove(unsigned cellIdx);
-        unsigned getRandomMove() const;
-        void undo();
-        unsigned size() const;
-
-        struct Cell{
-            unsigned idx;
-            Cell* next;
-            Cell* prev;
-            Cell(unsigned idx);
-        };
-
-        struct Iterator
-        {
-            using iterator_category = std::forward_iterator_tag;
-            using difference_type   = std::ptrdiff_t;
-            using value_type        = unsigned;
-            using pointer           = Cell*;
-            using reference         = unsigned&;
-
-            Iterator(const pointer ptr, const ValidMoves* parent) : m_ptr(ptr), parent{parent} {}
-
-            value_type operator*() const { return (*m_ptr).idx + parent->cellNum * parent->color; }
-            const pointer operator->() const { return m_ptr; }
-            const Iterator& operator++() const { m_ptr=m_ptr->next; return *this; }
-            const Iterator operator++(int) const { Iterator tmp = *this; ++(*this); return tmp; }
-            friend bool operator== (const Iterator& a, const Iterator& b) { return a.m_ptr == b.m_ptr; }
-            friend bool operator!= (const Iterator& a, const Iterator& b) { return a.m_ptr != b.m_ptr; }
-
-        private:
-            mutable pointer m_ptr;
-            const ValidMoves* parent;
-        };
-
-        const Iterator begin() const { return Iterator(first, this); }
-        const Iterator end() const { return Iterator(nullptr, this); }
-
-    public:
-        // cells for forward iterating in randomly ordered cells
-        vector<Cell> cells;
-        // lookup for instant accessing items from cells
-        vector<Cell*> lookup;
-        Cell* first;
-        vector<unsigned> takenCells;
-        unsigned mSize;
-        unsigned cellNum;
-        unsigned color;
-    };
-
     // ---- updates ----
-    void update(unsigned moveIdx);
+    void select(unsigned moveIdx);
     void undo();
 
-    // ---- queries ----
-    // simulation and expansion works with a default policy
-    // we compute an initial policy to improve performance
-    vector<array<array<vector<double>, 2>, 2>> getInitialPolicy();
+    // ---- conversions ----
 
-    Player getCurrentPlayer() const;
-    Player getPreviousPlayer() const;
-    Player getLeader() const;
-    Piece getCurrentPiece() const;
+    // Move is piece-pos, it can be represented by a simple unsigned number - moveIdx
+    // in chess pos encodes from-to, in other games like go it is simply the position of the piece
+    unsigned toPos(unsigned moveIdx) const;
+    unsigned toPiece(unsigned moveIdx) const;
+    // piece,pos -> moveIdx
+    unsigned toMoveIdx(unsigned piece, unsigned pos) const;
+
+    // ---- queries ----
+
+    unsigned getLastPlayer() const;
 
     // outcome in terminal state: 1 for WHITE, 0 for BLACK, 0.5 for draw
-    double getScore() const;
-    // 2 player-game
-    array<double, 2> getPlayerScores() const;
+    const std::array<double, 2>& scores();
 
-    // Move is player-pieceid-pieceMoveIdx
-    // it can be represented by a simple unsigned number - moveIdx
-    Move getLastMove() const;
-    unsigned getLastPieceMoveIdx() const;
-    unsigned getLastMoveIdx() const;
-    Omega::ValidMoves getValidMoveIdxs() const;
-    vector<Move> getValidMoves() const;
-    vector<Move> getTakenMoves() const;
-    // moveIdx -> pieceMoveIdx
-    unsigned getPieceMoveIdx(unsigned moveIdx) const;
-    // pieceMoveIdx -> moveIdx
-    unsigned getMoveIdx(Piece piece, unsigned pieceMoveIdx) const;
-    unsigned getRandomMove() const;
-    // expected number of moves to finish the game
-    unsigned getNumExpectedMoves() const;
-    // number of moves to always finish  the game
-    unsigned getMaxNumMoves() const;
-    // number of possible moves (maximum)
-    unsigned getMoveNum() const;
-    // number of possible moves (maximum)
-    unsigned getMaxLegalMoveNum() const;
+    const Moves::Iterator& getValidMoves();
+    const Moves::Iterator& getTakenMoves();
 
-    vector<Piece> getAvailablePieces() const;
+    const Moves::Iterator& getLastMove();
+    unsigned getLastMoveIdx();
 
-    unsigned getCurrentDepth() const;
+    std::vector<unsigned> getAvailablePieces() const;
 
-    // check if we are in a terminal state
+    // total number of valid moves
+    unsigned getTotalValidMoveNum() const;
+    // maximum number of valid moves that can be played in a turn
+    unsigned getMaxValidMoveNum() const;
+    // maximum number of turns (for both players)
+    unsigned getMaxTurnNum() const;
+    // maximum number of turns for a player
+    unsigned getMaxPlayerTurnNum() const;
+
     bool end() const;
 
     static constexpr unsigned PIECENUM = 2;
-
 private:
-    const unsigned cellNum;
-    inline unsigned computeCellNum(unsigned boardSize) const;
-
     // ---- initialization ----
     void initCells();
-    void setNeighbours(Cell& cell);
+    void setNeighbours(Hexagon& hex, const std::vector<std::vector<Hexagon*>>& board, int q, int r);
 
-    // ---- forward update ----
-    void mergeGroups(Cell& cell);
-    void updateColors();
-    void updateNeighbourBitMaps(Cell& cell);
-    void mergeNeighbourBitMaps(Cell& cell);
-
-    // ---- backward update ----
-    void decomposeGroup(Cell& cell);
-    void undoColors();
-    void undoOppBitMaps(const Cell& cell);
-
-    // ---- bit manipulations ----
-    unsigned popCnt64(uint64_t i);
-
-    // --- inline functions for internal usage ---
-    inline Cell& idxToCell(unsigned idx);
-    inline Cell& axToCell(Ax ax);
-    inline unsigned axToIdx(Ax ax) const;
+    // --- helper functions for internal usage ---
+    Hexagon& idxToHex(unsigned idx);
+    Hexagon* axToHexP(const std::vector<std::vector<Hexagon*>>& board, Ax ax);
     inline bool isValidAx(const Ax& ax);
+    inline unsigned computeCellNum(unsigned boardSize) const;
 
     // ---- variables ----
     unsigned numSteps;
-    unsigned freeNeighbourBitMapSize;
     const int boardSize;
-    vector<vector<Cell>> cells;
-    vector<Cell*> cellVec;
+    std::vector<Hexagon> hexagons;
 
-    // TODO
-    array<double, 2> playerScores;
-    size_t bitmapSize;
-    // current piece (WHITE/BLACK to place)
-    Piece currentPiece;
-    // the player who's in turn
-    Player currentPlayer;
-    Player previousPlayer;
-    list<unsigned> moveIdxs;
-    ValidMoves validMoves;
-    array<vector<Group>, 2> groups;
+    std::array<double, 2> playerScores;
+    std::vector<Hexagon*> queue;
+
+    unsigned nextPlayer;
+    unsigned nextPiece;
     unsigned depth;
+    const unsigned cellNum;
+    bool mark;
+    Moves moves;
 };
 
-struct Group
-{
-    Group(const unsigned id, const unsigned newGroupSize);
-    // the number of cells in the group
-    unsigned size;
-    // super group id
-    unsigned id;
-    // keep track of the group ids that were connected to the new piece placed on the board
-    map<Omega::Player, stack<list<unsigned>>> addedGroupIds;
-    // array of long values of indicating free or taken neighbours per bit of groups
-    stack<vector<long int>> freeNeighbourBitMaps;
-};
-
-// we use the enum Player from Omega class to represent the colors (DRAW means EMPTY)
-// this way we do not need to convert one to the other
-struct Cell{
-    Cell(int q, int r, unsigned idx);
-    list<unsigned> getNeighbourGroupIds(const vector<Group>& groups, Omega::Player color) const;
-    unsigned findSuperGroup(unsigned id, const vector<Group>& groups) const;
-    Omega::Player color;
-    // axial coordinates of hexagons
-    int q, r;
-    // indices of hexagons (row-by-row from left to right from top to bottom)
-    unsigned idx;
-    // list of neighbour cells. There is no destructor because the pointers do not have ownership
-    list<Cell*> neighbours;
-    // group index
-    int groupId;
-};
-
-#endif // GAMESTATE_H
+#endif // OMEGA_H

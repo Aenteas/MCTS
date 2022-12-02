@@ -29,7 +29,7 @@ public:
 
         Move* next;
         Move* prev;
-        Move(unsigned pos): pos(pos), next(nullptr), prev(nullptr) {}
+        Move(unsigned pos): pos(pos), piece(0), next(nullptr), prev(nullptr) {}
     };
 
     // nested iterator interface to hide the interface of the Moves class

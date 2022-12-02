@@ -28,9 +28,9 @@ public:
 
 protected:
     struct Move{
-        typename G::Player player;
+        unsigned player;
         unsigned int moveIdx;
-        Move(typename G::Player player, unsigned int moveIdx): player{player}, moveIdx{moveIdx} {}
+        Move(unsigned player, unsigned int moveIdx): player{player}, moveIdx{moveIdx} {}
     };
 
     inline void update(double outcome);
@@ -54,15 +54,15 @@ MAST<G>::MAST(G& game, Omega2& game2, double temp, double w):
     game2(game2),
     temp(temp),
     w(w),
-    probs(game.getMaxLegalMoveNum(), 0.5),
-    idxMap(game.getMaxLegalMoveNum(), 0),
+    probs(game.getMaxValidMoveNum(), 0.5),
+    idxMap(game.getMaxValidMoveNum(), 0),
     from(0)
 {
     std::array<std::vector<double>, G::PIECENUM> pieceScores; 
-    pieceScores.fill(std::vector<double>(game2.getMaxValidMoveNum(), 0.5));
+    pieceScores.fill(std::vector<double>(game.getMaxValidMoveNum(), 0.5));
     std::array<std::array<std::vector<double>, G::PIECENUM>, 2> playerScores;
     playerScores.fill(pieceScores);
-    scores = std::vector<std::array<std::array<std::vector<double>, G::PIECENUM>, 2>>(game2.getMaxTurnNum(), playerScores);
+    scores = std::vector<std::array<std::array<std::vector<double>, G::PIECENUM>, 2>>(game.getMaxTurnNum(), playerScores);
 }
 
 template<typename G>
@@ -77,59 +77,73 @@ std::tuple<unsigned, unsigned> MAST<G>::select() {
     unsigned depth = game.getCurrentDepth();
     if(depth != game2.getCurrentDepth())
         std::cout << "DIFF depth" << std::endl;
-    const auto& moves = game.getValidMoves();
-    const auto& mms = game2.getValidMoves().cbegin();
+
+    auto moves2 = game2.getValidMoves();
+    auto moves2it = moves2.begin();
+    const auto& moves = game.getValidMoves().cbegin();
+
     unsigned idx = 0;
-    if(game.getCurrentPlayer() != game2.getNextPlayer())
+    if(game2.getCurrentPlayer() != game.getNextPlayer())
         std::cout << "DIFF player mast" << std::endl;
-    for(const auto& move : moves){
-        if(mms.getPiece() != move.piece || mms.getPos() != move.idx)
+
+    while(moves){
+        auto& move = *moves2it;
+        if(moves.getPiece() != move.piece || moves.getPos() != move.idx)
             std::cout << "DIFF move" << std::endl;
+        
+        auto piece = moves.getPiece();
+        auto pos = moves.getPos();
         // no normalization is needed, relative volume matters
-        probs[idx] = exp(scores[depth][game.getCurrentPlayer()][move.piece][move.idx]/temp);
-        idxMap[idx] = move.idx;
+        probs[idx] = exp(scores[depth][game.getNextPlayer()][piece][pos]/temp);
+        idxMap[idx] = pos;
         ++idx;
-        ++mms;
+        ++moves;
+        ++moves2it;
     }
     auto it = probs.begin();
     std::advance(it, idx); // only pick from legal moves
     std::discrete_distribution<> distribution (probs.begin(), it);
     idx = distribution(generator);
-    auto itM = moves.begin();
+    auto M = game2.getValidMoves();
+    auto itM = M.begin();
     std::advance(itM, idx);
-    const auto& itMM = game2.getValidMoves().cbegin();
+    const auto& itMM = game.getValidMoves().cbegin();
     std::advance(itMM, idx);
     if(itM->piece != itMM.getPiece())
         std::cout << "DIFF piece" << std::endl;
-    unsigned moveIdx = game.getMoveIdx(itM->piece, idxMap[idx]);
-    if(moveIdx != game2.toMoveIdx(itM->piece, idxMap[idx]))
+
+    unsigned moveIdx = game.toMoveIdx(itMM.getPiece(), idxMap[idx]);
+    if(moveIdx != game2.getMoveIdx(itM->piece, idxMap[idx]))
         std::cout << "DIFF conv" << std::endl;
-    game.update(moveIdx);
+    game.select(moveIdx);
     game2.update(moveIdx);
     return {moveIdx, idx};
 }
 
 template<typename G>
 void MAST<G>::update(double outcome){
-    auto moves = game.getTakenMoves();
-    const auto& moves2 = game2.getTakenMoves().cbegin();
-    auto it = moves.begin();
+    auto moves2 = game2.getTakenMoves();
+    const auto& moves = game.getTakenMoves().cbegin();
+    auto it = moves2.begin();
     std::advance(it, from);
-    std::advance(moves2, from);
+    std::advance(moves, from);
     unsigned depth = from;
-    // std::cout << "simupdates:" << std::endl;
-    while(it != moves.end()){
+    std::cout << "simupdates:" << std::endl;
+    while(moves){
         // 1-outcome if black, faster then if block
         auto& move = *it;
-        if(moves2.getPiece() != move.piece || moves2.getPlayer() != move.player || moves2.getPos() != move.idx)
+        if(moves.getPiece() != move.piece || moves.getPlayer() != move.player || moves.getPos() != move.idx)
             std::cout << "DIFF move2" << std::endl;
-        double val = outcome + move.player * (1.0-2.0*outcome);
-        // std::cout << "val:" << val << " depth: "<< depth << std::endl;
+        auto player = moves.getPlayer();
+        auto piece = moves.getPiece();
+        auto pos = moves.getPos();
+        double val = outcome + player * (1.0-2.0*outcome);
+        std::cout << "val:" << val << " depth: "<< depth << std::endl;
         // update moving average
-        scores[depth][move.player][move.piece][move.idx] = w * scores[depth][move.player][move.piece][move.idx] + (1 - w) * val;
+        scores[depth][player][piece][pos] = w * scores[depth][player][piece][pos] + (1 - w) * val;
         ++it;
         ++depth;
-        ++moves2;
+        ++moves;
     }
 }
 
@@ -140,17 +154,17 @@ double MAST<G>::simulate(){
     while(!game.end())
         // move is added during selection
         select();
-    double outcome = game.getScore();
-    auto[s21, s22] = game2.scores();
-    auto[s1, s2] = game.getPlayerScores();
+    double outcome = game.outcome();
+    auto[s21, s22] = game.scores();
+    auto[s1, s2] = game2.getPlayerScores();
     if(s1 != s21 || s2 != s22)
         std::cout << "DIFF scores" << std::endl;
-    // else{
-    //     std::cout << "s1: " << s1 << std::endl;
-    //     std::cout << "s2: " << s2 << std::endl;
-    // }
+    else{
+        std::cout << "s1: " << s1 << std::endl;
+        std::cout << "s2: " << s2 << std::endl;
+    }
 
-    if(outcome != game2.outcome())
+    if(outcome != game2.getScore())
         std::cout << "DIFF outcome" << std::endl;
     update(outcome);
     return outcome;

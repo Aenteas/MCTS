@@ -47,7 +47,7 @@ protected:
     struct HashNode{
         template<class... Args>
         HashNode(ull key=0, ull code=0, typename nodeType<T>::value_type* parent=nullptr, Args&&... args):
-        impl(parent, forward<Args>(args)...),
+        impl(parent, std::forward<Args>(args)...),
         key(key),
         code(code){}
 
@@ -55,7 +55,7 @@ protected:
         void reset(ull key, ull code, typename nodeType<T>::value_type* parent, Args&&... args){
             this->key = key;
             this->code = code;
-            impl.reset(parent, forward<Args>(args)...);
+            impl.reset(parent, std::forward<Args>(args)...);
         }
         typename nodeType<T>::value_type impl;
         ull key;

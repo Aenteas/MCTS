@@ -14,7 +14,7 @@ Canvas::Canvas(QWidget *parent, int boardSize, double radius, double padding):
 {
     this->setFixedSize(board_width(), board_height());
     create_hexagons();
-    connect(this, SIGNAL (updateGameState(Omega::Piece, unsigned)), parent, SLOT (updateGameState(Omega::Piece, unsigned)));
+    connect(this, SIGNAL (updateGameState(unsigned, unsigned)), parent, SLOT (updateGameState(unsigned, unsigned)));
 }
 
 double Canvas::board_height() const{
@@ -128,7 +128,7 @@ void Canvas::mousePressEvent(QMouseEvent* ev)
 {
     if(active){ // if game has started
         Hexagon* hexagon = locate_hexagon(ev->pos());
-        Omega::Piece pieceIdx = (Omega::Piece) currentColor;
+        unsigned pieceIdx = (unsigned) currentColor;
         // Switch color and highlight
         if(hexagon and hexagon->updateColor(currentColor)){
             if(currentColor == Color::WHITE){
