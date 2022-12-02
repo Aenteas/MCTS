@@ -29,10 +29,9 @@ template<typename N, typename G, typename T, typename P, typename S>
 class MCTS: public MCTSBase
 {
 public:
-    MCTS(G& game, Omega2& game2, T* table, P* policy, S* scheduler):
+    MCTS(G& game, T* table, P* policy, S* scheduler):
         table(table),
         game(game),
-        game2(game2),
         policy(policy),
         scheduler(scheduler),
         root(table->selectRoot())
@@ -53,7 +52,6 @@ public:
     virtual void updateByOpponent(unsigned int moveIdx) final{
         // game state should be updated in the UI
         // for example if we reach a terminal state the UI should stop the gameplay
-        game2.update(moveIdx);
         root = table->updateRoot(moveIdx);
         policy->updateRoot();
     }
@@ -69,20 +67,16 @@ public:
         game.selectRoot();
         std::cout << "num:" << scheduler->num << std::endl; 
         unsigned rootPlayer = game.getNextPlayer();
-        if(rootPlayer != game2.getCurrentPlayer())
-            std::cout << "DIFF nextp" << std::endl; 
         unsigned currPlayer;
         // update root by the best move
         do{
-            N* bestChild = Node::selectMostVisited(table, &game, &game2);
+            N* bestChild = Node::selectMostVisited(table, &game);
             // depending on the hashtable implementation it could be that there was only one child explored and removed
             if(bestChild)
                 root = bestChild;
             else
                 root = root->expand(table);
             currPlayer = game.getNextPlayer();
-            if(currPlayer != game2.getCurrentPlayer())
-                std::cout << "DIFF nextp2" << std::endl; 
         }while(rootPlayer == currPlayer); // one player might have multiple moves in a turn
     }
 
@@ -92,17 +86,11 @@ protected:
         auto child = root->select(table);
         // game.end() should return false when the search depth exceeds a predefined maximum.
         // this is to prevent infinite loops in state loops
-        if(game.getCurrentDepth() != game2.getCurrentDepth())
-            std::cout << "DIFF depth3 bef" << std::endl; 
-        if(game.end() != game2.end())
-            std::cout << "DIFF end2" << std::endl; 
         while(!game.end() and child){
             leaf = child;
             child = child->select(table);
         }
         selectionDepth = game.getCurrentDepth();
-        if(game.getCurrentDepth() != game2.getCurrentDepth())
-            std::cout << "DIFF depth3" << std::endl; 
         leaf = child ? child : leaf->expand(table);
     }
 
@@ -120,7 +108,6 @@ protected:
     unsigned selectionDepth;
     T* const table;
     G& game;
-    Omega2& game2;
     P* const policy;
     S* const scheduler;
     N* root;

@@ -30,24 +30,23 @@ public:
 
 private:
     MCTSBase* impl;
-    Omega2 game2;
 };
 
 template<typename G>
-MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget): game2(5)
+MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget)
 {
     try{
         typedef MAST<G> P;
-        P* policy = new P(game, game2);
+        P* policy = new P(game);
         if(recycling){
             if(node == "UCT-2"){
                 typedef UCTNode<G, P> N;
                 typedef RZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
-                N::setup(&game, &game2, policy);
+                N::setup(&game, policy);
                 auto table = new T(game.getTotalValidMoveNum(), 20, budget);
                 S* scheduler = new S(timeLeft, game, *table);
-                impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
+                impl = new MCTS<N, G, T, P, S>(game, table, policy, scheduler);
             }
             else
                 throw std::invalid_argument( "Invalid node string: " + node + " received" );
@@ -57,10 +56,10 @@ MCTSBot::MCTSBot(G& game, std::string node, bool recycling, unsigned budget): ga
                 typedef UCTNode<G, P> N;
                 typedef ZHashTable<N> T;
                 typedef StopScheduler<G, T> S;
-                N::setup(&game, &game2, policy);
+                N::setup(&game, policy);
                 auto table = new T(game.getTotalValidMoveNum(), 20);
                 S* scheduler = new S(timeLeft, game, *table);
-                impl = new MCTS<N, G, T, P, S>(game, game2, table, policy, scheduler);
+                impl = new MCTS<N, G, T, P, S>(game, table, policy, scheduler);
             }
             else
                 throw std::invalid_argument( "Invalid node string: " + node + " received" );

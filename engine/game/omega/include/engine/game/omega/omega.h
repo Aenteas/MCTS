@@ -92,9 +92,7 @@ private:
     std::array<double, 2> playerScores;
     std::vector<Hexagon*> queue;
 
-    unsigned nextPlayer;
     unsigned nextPiece;
-    unsigned depth;
     const unsigned cellNum;
     bool mark;
     Moves moves;

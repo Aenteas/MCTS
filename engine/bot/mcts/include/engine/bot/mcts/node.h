@@ -1,8 +1,6 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include "engine/game/omega/omega2.h"
-
 class Node
 {
     ~Node()=delete;
@@ -16,20 +14,17 @@ protected:
 
 public:
     template<template<typename> typename T, typename N, typename G>
-    static N* selectMostVisited(T<N>* const table, G* game, Omega2* game2);
+    static N* selectMostVisited(T<N>* const table, G* game);
 };
 
 template<template<typename> typename T, typename N, typename G>
-N* Node::selectMostVisited(T<N>* const  table, G* game, Omega2* game2){
+N* Node::selectMostVisited(T<N>* const  table, G* game){
     double maxVisit = -1;
     unsigned int bestMoveIdx;
     N* bestChild;
     const auto& moves = game->getValidMoves().cbegin();
-    auto it = game2->getValidMoveIdxs().begin();
     while(moves){
-        unsigned moveIdx = *it;
-        if(game->toMoveIdx(moves.getPiece(), moves.getPos()) != moveIdx)
-            std::cout << "DIFF node" << std::endl;
+        unsigned moveIdx = game->toMoveIdx(moves.getPiece(), moves.getPos());
         N* child = table->select(moveIdx);
         double visit = child ? child->getVisitCount() : 0;
         if(visit > maxVisit){
@@ -38,12 +33,10 @@ N* Node::selectMostVisited(T<N>* const  table, G* game, Omega2* game2){
             bestMoveIdx = moveIdx;
         }
         ++moves;
-        ++it;
     }
     if(bestChild)
         table->update(bestMoveIdx);
     game->update(bestMoveIdx);
-    game2->update(bestMoveIdx);
     return bestChild;
 }
 
