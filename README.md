@@ -10,11 +10,11 @@ This repository contains a fully customizable Monte Carlo tree search algorithm 
 * Scheduler - Time allocation strategy for each search phase
 * Game type - The type of board game that is currently played
 
-The <<tt, transposition table implementation>> enables the user to specify a memory budget for the search tree.
+The transposition table implementation enables the user to specify a memory budget for the search tree. See details below.
 
 The goal of this project is to provide C++ implementation of the MCTS algorithm that can be deployed in different board game engines using custom configurations with little effort.
 
-### Features
+## Features
 
 * Exploartion strategy - UCT-2 [2].
 * Transposition table - Node recycling implementation from [3] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
