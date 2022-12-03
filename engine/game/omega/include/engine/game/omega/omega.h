@@ -53,10 +53,10 @@ public:
     // outcome in terminal state: 1 for WHITE, 0 for BLACK, 0.5 for draw
     const std::array<double, 2>& scores();
 
-    const Moves::Iterator& getValidMoves();
-    const Moves::Iterator& getTakenMoves();
+    Moves::Iterator& getValidMoves();
+    Moves::Iterator& getTakenMoves();
 
-    const Moves::Iterator& getLastMove();
+    Moves::Iterator& getLastMove();
     unsigned getLastMoveIdx();
 
     std::vector<unsigned> getAvailablePieces() const;
@@ -96,6 +96,8 @@ private:
     const unsigned cellNum;
     bool mark;
     Moves moves;
+
+    std::vector<std::vector<unsigned>> visits;
 };
 
 #endif // OMEGA_H

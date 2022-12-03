@@ -1,6 +1,8 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <iterator>
+
 class Node
 {
     ~Node()=delete;
@@ -22,9 +24,8 @@ N* Node::selectMostVisited(T<N>* const  table, G* game){
     double maxVisit = -1;
     unsigned int bestMoveIdx;
     N* bestChild;
-    const auto& moves = game->getValidMoves().cbegin();
-    while(moves){
-        unsigned moveIdx = game->toMoveIdx(moves.getPiece(), moves.getPos());
+    for(auto& move : game->getValidMoves()){
+        unsigned moveIdx = game->toMoveIdx(move.getPiece(), move.getPos());
         N* child = table->select(moveIdx);
         double visit = child ? child->getVisitCount() : 0;
         if(visit > maxVisit){
@@ -32,7 +33,6 @@ N* Node::selectMostVisited(T<N>* const  table, G* game){
             bestChild = child;
             bestMoveIdx = moveIdx;
         }
-        ++moves;
     }
     if(bestChild)
         table->update(bestMoveIdx);

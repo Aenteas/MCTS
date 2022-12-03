@@ -14,12 +14,21 @@ Moves::Moves(unsigned cellNum):
     pieceCellp(&pieceCell),
     pieceCellpp(&pieceCellp)
 {
-    moves.reserve(cellNum);
+    // produce random order, but keep the same order among instances to prevent inconsistencies in assign function
+    // using a static sharedMoves object
+    if(sharedMoves.empty() || sharedMoves.size() != cellNum) // check if different board configuration was played before
+    {
+        moves.reserve(cellNum);
+        for(unsigned i=0; i<cellNum; ++i)
+            moves.push_back({i});
+        random_shuffle(moves.begin(), moves.end());
+        sharedMoves = moves;
+    }
+    else
+    {
+        moves = sharedMoves;
+    }
     lookup.reserve(cellNum);
-    for(unsigned i=0; i<cellNum; ++i)
-        moves.push_back({i});
-    // produce random order
-    // random_shuffle(moves.begin(), moves.end());
     for(unsigned idx=0; idx<cellNum; ++idx){
         for(unsigned i=0; i<cellNum; ++i){
             if(moves[i].pos == idx)
@@ -61,17 +70,6 @@ void Moves::assign(const Moves& other){
     // but we potentially copy initial game state
     firstTaken = other.firstTaken ? lookup[other.firstTaken->pos] : nullptr;
     lastTaken = other.lastTaken ? lookup[other.lastTaken->pos] : nullptr;
-
-    // copy taken moves
-    auto otherTaken = other.firstTaken;
-    auto taken = firstTaken;
-    while(otherTaken){
-        taken->player = otherTaken->player;
-        taken->piece = otherTaken->piece;
-
-        otherTaken = otherTaken->next;
-        taken = taken->next;
-    }
 
     numTaken = other.numTaken;
     numEmpty = other.numEmpty;
@@ -130,7 +128,7 @@ void Moves::update(
     }
 }
 
-const Moves::Iterator& Moves::validMoves() 
+Moves::Iterator& Moves::validMoves()
 {
     pieceCellpp = &pieceCellp;
     size = numEmpty; 
@@ -139,7 +137,7 @@ const Moves::Iterator& Moves::validMoves()
     return iterator; 
 };
 
-const Moves::Iterator& Moves::takenMoves() 
+Moves::Iterator& Moves::takenMoves()
 {
     pieceCellpp = &(iterator.it); // piece will be the one placed on the actual cell iterated
     size = numTaken; 

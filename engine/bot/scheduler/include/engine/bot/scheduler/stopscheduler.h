@@ -36,7 +36,6 @@ public:
 
     bool finish();
     void schedule();
-    unsigned num;
 protected:
     // p * msecsBudget time is given to the second best child to catch up
     const double p;
@@ -76,8 +75,7 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
     table(table),
     p(p),
     freq(freq),
-    reserveTime(reserveTime),
-    num(0)
+    reserveTime(reserveTime)
 {
     if(!(p >= 0 or p<=1))
         throw std::invalid_argument( "p argument should be greater than 0 and smaller or equal to 1" );
@@ -116,7 +114,6 @@ StopScheduler<G, T>::StopScheduler(const std::chrono::milliseconds& timeLeft,
 template<typename G, typename T>
 bool StopScheduler<G, T>::finish(){
     ++numPlayouts;
-    ++num;
     // Make sure that reserve time is large enough to run full cycles at least frequency times otherwise
     // it is not quaranteed that the AI does not run out of time
     if(fmod(numPlayouts+1, freq) != 0.0)
@@ -127,47 +124,46 @@ bool StopScheduler<G, T>::finish(){
     if(msecsBudget <= elapsedmsecs){
         return true;
     }
-    // speed = numPlayouts / elapsedmsecs;
-    // double maxScore = -1;
-    // double secondMaxScore = -1;
-    // double score;
+    speed = numPlayouts / elapsedmsecs;
+    double maxScore = -1;
+    double secondMaxScore = -1;
+    double score;
 
-    // typename extractNodeType<T>::value_type* bestNode;
-    // typename extractNodeType<T>::value_type* secondBestNode;
-    // const auto& moves = game.getValidMoves().cbegin();
-    // while(moves){
-    //     unsigned moveIdx = game.toMoveIdx(moves.getPiece(), moves.getPos());
-    //     auto node = table.select(moveIdx);
-    //     score = node ? node->getVisitCount() : 0;
-    //     if(score > maxScore){
-    //         secondMaxScore = maxScore;
-    //         maxScore = score;
-    //         secondBestNode = bestNode;
-    //         bestNode = node;
-    //     }
-    //     else if(score > secondMaxScore){
-    //         secondMaxScore = score;
-    //         secondBestNode = node;
-    //     }
-    //     ++moves;
-    // }
-    // if(bestNode){
-    //     // most likely there is no way for the AI to win
-    //     if(bestNode->getStateScore() < 0.01 and elapsedmsecs >= 500){
-    //         return true;
-    //     }
-    //     // most likely the AI won
-    //     if(bestNode->getStateScore() > 0.99 and elapsedmsecs >= 500){
-    //         return true;
-    //     }
-    // }
-    // // check if the best node can change within the dedicated time frame
-    // // estimate  of minimum number of playouts to change the best node (with regard to the visit count)
-    // double minPlayouts = maxScore - secondMaxScore;
-    // // check if the expected number of playouts that can be carried out within the dedicated time frame is smaller
-    // if(minPlayouts > p / w * speed * (msecsBudget - elapsedmsecs)){
-    //     return true;
-    // }
+    typename extractNodeType<T>::value_type* bestNode;
+    typename extractNodeType<T>::value_type* secondBestNode;
+    
+    for(auto& move : game.getValidMoves()){
+        unsigned moveIdx = game.toMoveIdx(move.getPiece(), move.getPos());
+        auto node = table.select(moveIdx);
+        score = node ? node->getVisitCount() : 0;
+        if(score > maxScore){
+            secondMaxScore = maxScore;
+            maxScore = score;
+            secondBestNode = bestNode;
+            bestNode = node;
+        }
+        else if(score > secondMaxScore){
+            secondMaxScore = score;
+            secondBestNode = node;
+        }
+    }
+    if(bestNode){
+        // most likely there is no way for the AI to win
+        if(bestNode->getStateScore() < 0.01 and elapsedmsecs >= 500){
+            return true;
+        }
+        // most likely the AI won
+        if(bestNode->getStateScore() > 0.99 and elapsedmsecs >= 500){
+            return true;
+        }
+    }
+    // check if the best node can change within the dedicated time frame
+    // estimate  of minimum number of playouts to change the best node (with regard to the visit count)
+    double minPlayouts = maxScore - secondMaxScore;
+    // check if the expected number of playouts that can be carried out within the dedicated time frame is smaller
+    if(minPlayouts > p / w * speed * (msecsBudget - elapsedmsecs)){
+        return true;
+    }
     return false;
 }
 
@@ -179,7 +175,6 @@ void StopScheduler<G, T>::schedule(){
     n = game.getMaxPlayerTurnNum();
     w  = (a*n*n + b*n + c);
     msecsBudget = w / n * (rmsecs > 0 ? rmsecs : 1);
-    msecsBudget = 10000;
 }
 
 #endif // STOPSCHEDULER_H

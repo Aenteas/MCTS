@@ -336,7 +336,7 @@ void BoardDialog::updateFromAiBot(){
         emit back_to_main();
         return;
     }
-    const auto& moves = game->getTakenMoves().crbegin();
+    auto& moves = game->getTakenMoves().rbegin();
     // get last 2 moves to update
     unsigned blackCell = moves.getPos();
     --moves;

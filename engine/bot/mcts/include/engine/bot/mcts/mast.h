@@ -42,7 +42,6 @@ protected:
     G& game;
     // preallocate space for random sampling upfront by using the number of maximum legal moves
     std::vector<double> probs;
-    std::vector<unsigned> idxMap;
     // we only need to update moves that are taken after the current root
     unsigned from;
 };
@@ -52,8 +51,7 @@ MAST<G>::MAST(G& game, double temp, double w):
     game(game),
     temp(temp),
     w(w),
-    probs(game.getMaxValidMoveNum(), 0.5),
-    idxMap(game.getMaxValidMoveNum(), 0),
+    probs(game.getMaxValidMoveNum(), exp(0.5/temp)),
     from(0)
 {
     std::array<std::vector<double>, G::PIECENUM> pieceScores; 
@@ -73,33 +71,30 @@ template<typename G>
 std::tuple<unsigned, unsigned> MAST<G>::select() {
     std::default_random_engine generator;
     unsigned depth = game.getCurrentDepth();
-    const auto& moves = game.getValidMoves().cbegin();
     unsigned idx = 0;
 
-    while(moves){
-        auto piece = moves.getPiece();
-        auto pos = moves.getPos();
+    for(auto& move : game.getValidMoves()){
+        auto piece = move.getPiece();
+        auto pos = move.getPos();
         // no normalization is needed, relative volume matters
         probs[idx] = exp(scores[depth][game.getNextPlayer()][piece][pos]/temp);
-        idxMap[idx] = pos;
         ++idx;
-        ++moves;
     }
     auto it = probs.begin();
     std::advance(it, idx); // only pick from legal moves
     std::discrete_distribution<> distribution (probs.begin(), it);
     idx = distribution(generator);
-    const auto& itMM = game.getValidMoves().cbegin();
-    std::advance(itMM, idx);
+    auto& itSelected = game.getValidMoves().begin();
+    std::advance(itSelected, idx);
 
-    unsigned moveIdx = game.toMoveIdx(itMM.getPiece(), idxMap[idx]);
+    unsigned moveIdx = game.toMoveIdx(itSelected.getPiece(), itSelected.getPos());
     game.select(moveIdx);
     return {moveIdx, idx};
 }
 
 template<typename G>
 void MAST<G>::update(double outcome){
-    const auto& moves = game.getTakenMoves().cbegin();
+    auto& moves = game.getTakenMoves().begin();
     std::advance(moves, from);
     unsigned depth = from;
     while(moves){

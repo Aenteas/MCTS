@@ -20,6 +20,8 @@ Omega::Omega(unsigned boardSize) :   Game<Omega>(boardSize),
     queue.reserve(numSteps);
     // we need as much bits to be able to represent each cell on the board
     initCells();
+
+    visits = std::vector<std::vector<unsigned>>(61, std::vector<unsigned>(61, 0));
 }
 
 void Omega::assign(const Omega &other)
@@ -121,6 +123,7 @@ void Omega::initCells()
 void Omega::select(unsigned moveIdx)
 {
     unsigned pos = toPos(moveIdx);
+    ++visits[depth][pos];
     moves.add(nextPlayer, nextPiece, pos);
     hexagons[pos].mark = mark; // update with new mark
     --numSteps;
@@ -150,7 +153,7 @@ const array<double, 2>& Omega::scores()
 {
     playerScores[0] = 1;
     playerScores[1] = 1;
-    const auto& takenMoves = moves.takenMoves().cbegin();
+    auto& takenMoves = moves.takenMoves().begin();
     unsigned start = 0;
     unsigned end = 0;
     while (takenMoves)
@@ -184,7 +187,7 @@ const array<double, 2>& Omega::scores()
         }
         ++takenMoves;
     }
-    const auto &emptyCells = moves.validMoves().cbegin();
+    auto &emptyCells = moves.validMoves().begin();
     // set rest of the hexagons to visited
     while (emptyCells)
     {
@@ -206,24 +209,24 @@ unsigned Omega::getLastPlayer() const
         return 1 - nextPlayer;
 }
 
-const Moves::Iterator &Omega::getValidMoves()
+Moves::Iterator& Omega::getValidMoves()
 {
     return moves.validMoves();
 }
 
-const Moves::Iterator &Omega::getTakenMoves()
+Moves::Iterator& Omega::getTakenMoves()
 {
     return moves.takenMoves();
 }
 
-const Moves::Iterator &Omega::getLastMove()
+Moves::Iterator& Omega::getLastMove()
 {
-    return moves.takenMoves().crbegin();
+    return moves.takenMoves().rbegin();
 }
 
 unsigned Omega::getLastMoveIdx()
 {
-    auto lastMove = getLastMove();
+    const auto& lastMove = getLastMove();
     return toMoveIdx(lastMove.getPiece(), lastMove.getPos());
 }
 

@@ -121,9 +121,8 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     double score;
     unsigned int idx=0;
     double logc = c * log(vCount + 1);
-    const auto& moves = game->getValidMoves().cbegin();
-    while(moves){
-        unsigned moveIdx = game->toMoveIdx(moves.getPiece(), moves.getPos());
+    for(auto& move : game->getValidMoves()){
+        unsigned moveIdx = game->toMoveIdx(move.getPiece(), move.getPos());
         UCTNode<G, P>* child = table->select(moveIdx);
         score = actionScore(child, idx, logc);
         if(score > maxScore){
@@ -133,7 +132,6 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
             bestIdx = idx;
         }
         ++idx;
-        ++moves;
     }
 
     // When we choose to visit an unexplored state we stop the selection phase and will expand the node with the new child

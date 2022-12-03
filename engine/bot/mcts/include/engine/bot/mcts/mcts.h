@@ -3,7 +3,6 @@
 
 #include "node.h"
 #include <stdexcept>
-#include <iostream>
 
 // Type erasure
 class MCTSBase{
@@ -65,7 +64,6 @@ public:
             backpropagation(outcome);
         }
         game.selectRoot();
-        std::cout << "num:" << scheduler->num << std::endl; 
         unsigned rootPlayer = game.getNextPlayer();
         unsigned currPlayer;
         // update root by the best move

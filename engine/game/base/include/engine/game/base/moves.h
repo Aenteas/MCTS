@@ -38,12 +38,16 @@ public:
         friend class Moves;
 
         using difference_type = std::ptrdiff_t;
-        using value_type = Move;
+        using value_type = const Iterator&;
         using pointer = Move*;
         using reference = Move&;
         using iterator_category = std::input_iterator_tag;
 
         Iterator(const Moves& parent) : it(nullptr), parent{parent} {}
+
+        Iterator(const Iterator& other): parent(other.parent) {
+            it = other.it;
+        }
 
         // only used when iterating through taken moves
         unsigned getPlayer() const { return it->player; }
@@ -52,24 +56,32 @@ public:
         unsigned getPiece() const { return (*(parent.pieceCellpp))->piece; }
         unsigned getPos() const { return it->pos; }
 
+        bool operator!=(const Move* left) const { return it != left; }
+
+        value_type operator*() const { return *this; }
+
         // no post increment/decrement operators
-        const Iterator& operator++() const { 
+        Iterator& operator++() { 
             it=it->next; 
             return *this; 
         }
-        const Iterator& operator--() const { 
+        Iterator& operator--() { 
             it=it->prev; 
             return *this; 
         }
 
-        // returning constant references on the same iterator instance. Be aware when using with multithreading
-        const Iterator& cbegin() const { 
+        Iterator& begin() { 
             it = parent.first; 
             return *this; 
         }
-        const Iterator& crbegin() const { 
+        
+        Iterator& rbegin() { 
             it = parent.last; 
             return *this; 
+        }
+
+        Move* end() const { 
+            return nullptr; 
         }
 
         // iterator can be used in simple while loop
@@ -82,8 +94,8 @@ public:
         const Moves& parent;
     };
 
-    const Iterator& validMoves();
-    const Iterator& takenMoves();
+    Iterator& validMoves();
+    Iterator& takenMoves();
 
     // item can not be modified
     const Move& operator[](unsigned idx) const { return *lookup[idx]; }
@@ -97,6 +109,7 @@ private:
         Move** toLast);
     // iterating in randomly ordered moves
     std::vector<Move> moves;
+    inline static std::vector<Move> sharedMoves = {};
     // lookup with O(1) access to items from moves
     std::vector<Move*> lookup;
     Move* first;
