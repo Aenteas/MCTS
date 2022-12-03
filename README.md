@@ -60,7 +60,6 @@ $ ./run-exe.sh
 
 for more details to set up python interface visit this [repository](https://github.com/Aenteas/cmake-generator).
 
-[[tt]]
 ### Node recycling with transposition tables
 
 What is node recycling? The idea is to discard the least recently visited leaf nodes from the search tree as the number of nodes exceeds a budget. Nodes are stored in a fixed-size (budget) FIFO-like container to determine their relative importance order, with the next node to be discarded at the front. 
