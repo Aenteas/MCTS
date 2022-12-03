@@ -5,10 +5,10 @@
 This repository contains a fully customizable Monte Carlo tree search algorithm in C++17. The implementation uses policy based design with templates to make the following behaviors configurable:
 
 * Exploration strategy - Determines selection and backpropagation phases during the search
-* Transposition table - Provides memory management and storage for the nodes
+* Transposition table - Provides memory management and storage for the tree nodes
 * Rollout policy - Specifies the strategy used for the simulation phase
 * Scheduler - Time allocation strategy for each search phase
-* Game type - The type of board game that is currently played
+* Game type - The type of board game to play
 
 The transposition table implementation enables the user to specify a memory budget for the search tree. See details below.
 
