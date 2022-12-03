@@ -2,12 +2,33 @@
 
 ## Description
 
-This repository contains C++17 implementation of the Monte Carlo tree search algorithm (MCTS) using node recycling [3] adapted to transposition tables.
-It is accompanied by a [QT](https://www.qt.io/) graphical interface for the board game Omega as a demo.
+This repository contains a fully customizable Monte Carlo tree search algorithm in C++17. The implementation uses policy based design with templates to make the following behaviors configurable:
+
+* Exploration strategy - Determines selection and backpropagation phases during the search
+* Transposition table - Provides memory management and storage for the nodes
+* Rollout policy - Specifies the strategy used for the simulation phase
+* Scheduler - Time allocation strategy for each search phase
+* Game type - The type of board game that is currently played
+
+The <<tt, transposition table implementation>> enables the user to specify a memory budget for the search tree.
+
+The goal of this project is to provide C++ implementation of the MCTS algorithm that can be deployed in different board game engines using custom configurations with little effort.
+
+### Features
+
+* Exploartion strategy - UCT-2 [2].
+* Transposition table - Node recycling implementation from [3] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
+* Rollout policy - Move-Average Sampling Technique (MAST) simulation policy.
+* Scheduler - Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
+* Game type - Omega accompanied by a [QT](https://www.qt.io/) graphical interface.
+* No virtual call or heap allocation during the search.
 
 There is also a custom [generator](https://github.com/Aenteas/cmake-generator) under the scripts folder that provides automatic [CMake](https://cmake.org/) file generation with a support for QT and python wrappers [(SWIG)](http://www.swig.org).
 
-The goal of this project is to provide a versatile C++ implementation of the MCTS algorithm that can be deployed in different board game engines/languages with little effort.
+## TODOS
+
+* Parallelisation and thread interruption
+* Add python wrapper and demo
 
 ## Requirements
 
@@ -39,6 +60,7 @@ $ ./run-exe.sh
 
 for more details to set up python interface visit this [repository](https://github.com/Aenteas/cmake-generator).
 
+[[tt]]
 ### Node recycling with transposition tables
 
 What is node recycling? The idea is to discard the least recently visited leaf nodes from the search tree as the number of nodes exceeds a budget. Nodes are stored in a fixed-size (budget) FIFO-like container to determine their relative importance order, with the next node to be discarded at the front. 
@@ -68,22 +90,7 @@ Node recycling and recursive replacement for transposition table updates:
 
 ![Alt text](recycling.png?raw=true "recycling")
 
-### Implementation details
-
-* UCT-2 [2] exploration strategy.
-* Node recycling implementation from [3] adapted to linear probing transposition tables. As a benchmark, there is a simple transposition table implementation with chaining
-* No heap allocation during the search phase
-* Template-based implementation without virtual calls
-* Move-Average Sampling Technique (MAST) simulation policy.
-* Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
-
-## TODOS
-
-* Parallel execution and thread interruption
-* Add general game interface
-* Add python chess game interface
-
-### Omega game rules
+### Omega gameplay
 
 Gameplay:
 
