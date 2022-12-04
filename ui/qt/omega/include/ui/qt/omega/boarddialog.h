@@ -8,7 +8,7 @@
 #include <QTime>
 
 #include "canvas.h"
-#include "engine/bot/mcts/mctsbot.h"
+#include "engine/bot/mcts/base/mctsbot.h"
 #include "engine/bot/base/aibotbase.h"
 #include "qtbotwrapper.h"
 #include "engine/bot/random/randombot.h"
@@ -33,6 +33,7 @@ public:
     unsigned time,
     QString bot,
     QString node,
+    QString policy,
     bool recycling,
     unsigned budget);
     ~BoardDialog();
@@ -70,6 +71,7 @@ private:
     unsigned boardSize;
     QString bot;
     QString node;
+    QString policy;
     bool recycling;
     unsigned budget;
 

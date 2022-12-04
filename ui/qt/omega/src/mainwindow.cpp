@@ -29,6 +29,10 @@ MainWindow::MainWindow(double padding, double radius) :
     ui->nodeComboBox->addItem(QString("UCT-2"));
     ui->nodeComboBox->setCurrentIndex(0);
 
+    ui->policyComboBox->addItem(QString("random"));
+    ui->policyComboBox->addItem(QString("MAST"));
+    ui->policyComboBox->setCurrentIndex(0);
+
     ui->memoryComboBox->addItem(QString("OneDepthVNew"));
     ui->memoryComboBox->addItem(QString("Node Recycling"));
     ui->memoryComboBox->setCurrentIndex(0);
@@ -46,7 +50,9 @@ MainWindow::MainWindow(double padding, double radius) :
     ui->engineComboBox->hide();
     ui->engineLabel->hide();
     ui->nodeComboBox->hide();
+    ui->policyComboBox->hide();
     ui->nodeLabel->hide();
+    ui->policyLabel->hide();
     ui->nodeLimitSlider->hide();
     ui->nodeLimitLabel->hide();
     ui->timeSlider->hide();
@@ -74,11 +80,12 @@ void MainWindow::on_startButton_clicked()
     QString bot = ui->engineComboBox->currentText();
     bool recycling = ui->memoryComboBox->currentText() == "Node Recycling";
     QString node = ui->nodeComboBox->currentText();
+    QString policy = ui->policyComboBox->currentText();
     unsigned int from = ui->nodeLimitLabel->text().indexOf(":")+1;
     unsigned int budget = ui->nodeLimitLabel->text().mid(from).toLong();
 
     try{
-        board = new BoardDialog(this, boardSize, radius, padding, mode, color, time, bot, node, recycling, budget);
+        board = new BoardDialog(this, boardSize, radius, padding, mode, color, time, bot, node, policy, recycling, budget);
     }
     catch(const std::exception& e){
         QMessageBox msgBox;
@@ -107,7 +114,9 @@ void MainWindow::on_modeComboBox_currentTextChanged(const QString &text)
         ui->engineComboBox->hide();
         ui->engineLabel->hide();
         ui->nodeComboBox->hide();
+        ui->policyComboBox->hide();
         ui->nodeLabel->hide();
+        ui->policyLabel->hide();
         ui->nodeLimitSlider->hide();
         ui->nodeLimitLabel->hide();
         ui->timeSlider->hide();
@@ -135,7 +144,9 @@ void MainWindow::on_engineComboBox_currentTextChanged(const QString &text)
         ui->nodeLimitSlider->hide();
         ui->nodeLimitLabel->hide();
         ui->nodeComboBox->hide();
+        ui->policyComboBox->hide();
         ui->nodeLabel->hide();
+        ui->policyLabel->hide();
         setMaximumHeight(400);
     }
     // show additional options
@@ -143,7 +154,9 @@ void MainWindow::on_engineComboBox_currentTextChanged(const QString &text)
         ui->memoryComboBox->show();
         ui->memoryLabel->show();
         ui->nodeComboBox->show();
+        ui->policyComboBox->show();
         ui->nodeLabel->show();
+        ui->policyLabel->show();
         if(ui->memoryComboBox->currentText() == "Node Recycling"){
             ui->nodeLimitSlider->show();
             ui->nodeLimitLabel->show();

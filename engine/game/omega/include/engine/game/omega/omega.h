@@ -96,8 +96,6 @@ private:
     const unsigned cellNum;
     bool mark;
     Moves moves;
-
-    std::vector<std::vector<unsigned>> visits;
 };
 
 #endif // OMEGA_H

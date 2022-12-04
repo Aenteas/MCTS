@@ -6,7 +6,6 @@
 #include <tuple>
 #include <math.h>
 #include <random>
-#include <iostream>
 
 /**********************************************************************************
  * Move-Average Sampling Technique (MAST) Playout Policy                          *
@@ -27,13 +26,7 @@ public:
     void updateRoot();
 
 protected:
-    struct Move{
-        unsigned player;
-        unsigned int moveIdx;
-        Move(unsigned player, unsigned int moveIdx): player{player}, moveIdx{moveIdx} {}
-    };
-
-    inline void update(double outcome);
+    void update(double outcome);
 
     // [depth][player][piece][pieceMoveIdx] -> score
     std::vector<std::array<std::array<std::vector<double>, G::PIECENUM>, 2>> scores;

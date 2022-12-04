@@ -13,6 +13,7 @@ BoardDialog::BoardDialog(
     unsigned time,
     QString bot,
     QString node,
+    QString policy,
     bool recycling,
     unsigned budget
     ) :
@@ -21,6 +22,7 @@ BoardDialog::BoardDialog(
     boardSize(boardSize),
     bot(bot),
     node(node),
+    policy(policy),
     recycling(recycling),
     budget(budget),
     canvas(new Canvas(this, boardSize, radius, padding)),
@@ -61,7 +63,7 @@ BoardDialog::~BoardDialog()
 void BoardDialog::initBot(){
     auto aiBotImpl = [this]() -> AiBotBase*{
         if(bot == "MCTS")
-            return new MCTSBot(*game, node.toStdString(), recycling, budget);
+            return new MCTSBot(*game, node.toStdString(), policy.toStdString(), recycling, budget);
         else if(bot == "Random")
             return new RandomBot<Omega>(*game);
     }();

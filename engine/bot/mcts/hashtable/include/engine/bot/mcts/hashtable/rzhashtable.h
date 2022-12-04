@@ -3,7 +3,6 @@
 
 #include "zhashtablebase.h"
 
-#include <iostream>
 #include <algorithm>
 #include <list>
 #include <memory>

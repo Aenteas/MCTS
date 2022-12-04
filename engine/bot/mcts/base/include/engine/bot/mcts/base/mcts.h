@@ -1,7 +1,7 @@
 #ifndef MCTS_H
 #define MCTS_H
 
-#include "node.h"
+#include "engine/bot/mcts/exploration/node.h"
 #include <stdexcept>
 
 // Type erasure

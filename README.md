@@ -16,9 +16,9 @@ The goal of this project is to provide C++ implementation of the MCTS algorithm 
 
 ## Features
 
-* Exploartion strategy - UCT-2 [2].
+* Exploartion strategy - Upper confidence tree (UCT-2) [2].
 * Transposition table - Node recycling implementation from [3] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
-* Rollout policy - Move-Average Sampling Technique (MAST) simulation policy.
+* Rollout policy - Move-Average Sampling Technique (MAST) and random simulation policies.
 * Scheduler - Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
 * Game type - Omega accompanied by a [QT](https://www.qt.io/) graphical interface.
 * No virtual call or heap allocation during the search.
@@ -73,6 +73,7 @@ What are the benefits of node recycling?
 * Can be customized for memory requirements
 * No heap allocation is needed during the search phase
 * Hash independent node replacement
+* A good fit for tree parallelization: Virtual loss does not save us from data race when intermittent nodes are potentially being overwritten. Since only the leaf nodes are recycled it is not a problem.
 
 Updating the node order when the budget is not exceeded:
 
@@ -89,7 +90,7 @@ Node recycling and recursive replacement for transposition table updates:
 
 ![Alt text](recycling.png?raw=true "recycling")
 
-### Omega gameplay
+### Omega
 
 Gameplay:
 

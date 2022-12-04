@@ -134,6 +134,21 @@ selection-color: rgb(32, 105, 224);</string>
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="policyLabel">
+        <property name="text">
+         <string>Rollout policy</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="policyComboBox">
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(121, 121, 121);
+selection-color: rgb(32, 105, 224);</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="memoryLabel">
         <property name="text">
          <string>Memory Management</string>

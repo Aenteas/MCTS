@@ -1,7 +1,6 @@
 #ifndef UCTNODE_H
 #define UCTNODE_H
 
-#include <iostream>
 #include <vector>
 
 /**********************************************************************************

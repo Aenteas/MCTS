@@ -20,8 +20,6 @@ Omega::Omega(unsigned boardSize) :   Game<Omega>(boardSize),
     queue.reserve(numSteps);
     // we need as much bits to be able to represent each cell on the board
     initCells();
-
-    visits = std::vector<std::vector<unsigned>>(61, std::vector<unsigned>(61, 0));
 }
 
 void Omega::assign(const Omega &other)
@@ -123,7 +121,6 @@ void Omega::initCells()
 void Omega::select(unsigned moveIdx)
 {
     unsigned pos = toPos(moveIdx);
-    ++visits[depth][pos];
     moves.add(nextPlayer, nextPiece, pos);
     hexagons[pos].mark = mark; // update with new mark
     --numSteps;
