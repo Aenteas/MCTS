@@ -87,10 +87,9 @@ std::tuple<unsigned, unsigned> MAST<G>::select() {
 
 template<typename G>
 void MAST<G>::update(double outcome){
-    auto& moves = game.getTakenMoves().begin();
-    std::advance(moves, from);
-    unsigned depth = from;
-    while(moves){
+    auto& moves = game.getTakenMoves().rbegin();
+    unsigned depth = game.getCurrentDepth() - 1;
+    while(depth >= from){
         // 1-outcome if black, faster then if block
         auto player = moves.getPlayer();
         auto piece = moves.getPiece();
@@ -98,8 +97,8 @@ void MAST<G>::update(double outcome){
         double val = outcome + player * (1.0-2.0*outcome);
         // update moving average
         scores[depth][player][piece][pos] = w * scores[depth][player][piece][pos] + (1 - w) * val;
-        ++depth;
-        ++moves;
+        --depth;
+        --moves;
     }
 }
 

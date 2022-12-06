@@ -26,6 +26,7 @@ MainWindow::MainWindow(double padding, double radius) :
     ui->engineComboBox->addItem(QString("MCTS"));
     ui->engineComboBox->setCurrentIndex(0);
 
+    ui->nodeComboBox->addItem(QString("RAVE"));
     ui->nodeComboBox->addItem(QString("UCT-2"));
     ui->nodeComboBox->setCurrentIndex(0);
 

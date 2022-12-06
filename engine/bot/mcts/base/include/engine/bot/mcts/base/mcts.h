@@ -59,9 +59,9 @@ public:
         scheduler->schedule();
         while(!scheduler->finish()){
             game.selectRoot();
-            selection();
-            double outcome = simulation();
-            backpropagation(outcome);
+            unsigned leafDepth = selection();
+            double outcome = policy->simulate();
+            leaf->backprop(outcome, table, leafDepth);
         }
         game.selectRoot();
         unsigned rootPlayer = game.getNextPlayer();
@@ -79,7 +79,7 @@ public:
     }
 
 protected:
-    void selection(){
+    unsigned selection(){
         leaf = root;
         auto child = root->select(table);
         // game.end() should return false when the search depth exceeds a predefined maximum.
@@ -88,22 +88,11 @@ protected:
             leaf = child;
             child = child->select(table);
         }
-        selectionDepth = game.getCurrentDepth();
+        unsigned leafDepth = game.getCurrentDepth();
         leaf = child ? child : leaf->expand(table);
+        return leafDepth;
     }
 
-    double simulation(){
-        double outcome = policy->simulate();
-        // backward gamestate, transposition table and optionally collect additional data from simulation depending on the type of the node
-        leaf->setupBackProp(selectionDepth);
-        return outcome;
-    }
-
-    void backpropagation(double outcome){
-        leaf->backprop(outcome, table);
-    }
-
-    unsigned selectionDepth;
     T* const table;
     G& game;
     P* const policy;

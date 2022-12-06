@@ -12,6 +12,7 @@
 #include "engine/bot/mcts/policy/mast.h"
 #include "engine/bot/mcts/policy/random.h"
 #include "engine/bot/mcts/exploration/uctnode.h"
+#include "engine/bot/mcts/exploration/ravenode.h"
 
 class MCTSBot: public AiBotBase
 {
@@ -64,6 +65,16 @@ MCTSBot::MCTSBot(G& game, std::string node, std::string policy, bool recycling, 
                 else
                     throw std::invalid_argument( "Invalid node string: " + node + " received" );
             }
+            else if(node == "RAVE"){
+                if(policy == "random"){
+                    CREATE_IMPL(RAVENode, RZHashTable, RandomPolicy)
+                }
+                else if(policy == "MAST"){
+                    CREATE_IMPL(RAVENode, RZHashTable, MAST)
+                }
+                else
+                    throw std::invalid_argument( "Invalid node string: " + node + " received" );
+            }
             else
                 throw std::invalid_argument( "Invalid policy string: " + policy + " received" );
         }
@@ -74,6 +85,16 @@ MCTSBot::MCTSBot(G& game, std::string node, std::string policy, bool recycling, 
                 }
                 else if(policy == "MAST"){
                     CREATE_IMPL(UCTNode, ZHashTable, MAST)
+                }
+                else
+                    throw std::invalid_argument( "Invalid node string: " + node + " received" );
+            }
+            else if(node == "RAVE"){
+                if(policy == "random"){
+                    CREATE_IMPL(RAVENode, ZHashTable, RandomPolicy)
+                }
+                else if(policy == "MAST"){
+                    CREATE_IMPL(RAVENode, ZHashTable, MAST)
                 }
                 else
                     throw std::invalid_argument( "Invalid node string: " + node + " received" );

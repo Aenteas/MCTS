@@ -232,6 +232,11 @@ std::vector<unsigned> Omega::getAvailablePieces() const
     return {nextPiece};
 }
 
+unsigned Omega::getPieceMaxNumMoves(unsigned) const
+{
+    return cellNum;
+}
+
 unsigned Omega::getTotalValidMoveNum() const
 {
     return cellNum * 2;

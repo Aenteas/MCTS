@@ -35,6 +35,8 @@ public:
 
     // ---- updates ----
     void select(unsigned moveIdx);
+    // is required to update only the following:
+    // numSteps, depth, nextPiece, nextPlayer, stuff returned by available moves
     void undo();
 
     // ---- conversions ----
@@ -60,6 +62,7 @@ public:
     unsigned getLastMoveIdx();
 
     std::vector<unsigned> getAvailablePieces() const;
+    unsigned getPieceMaxNumMoves(unsigned) const;
 
     // total number of valid moves
     unsigned getTotalValidMoveNum() const;

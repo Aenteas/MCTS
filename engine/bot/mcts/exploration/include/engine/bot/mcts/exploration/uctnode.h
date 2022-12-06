@@ -29,7 +29,7 @@ template<typename G, typename P>
 class UCTNode
 {
 public:
-    UCTNode(UCTNode<G, P>* parent);
+    UCTNode(UCTNode<G, P>* parent = nullptr);
 
     UCTNode& operator=(const UCTNode&)=default;
     UCTNode(const UCTNode&)=default;
@@ -47,9 +47,7 @@ public:
     UCTNode<G, P>* expand(T<UCTNode<G, P>>* const table);
 
     template<template<typename> typename T>
-    void backprop(double outcome, T<UCTNode<G, P>>* const table);
-
-    void setupBackProp(unsigned depth);
+    void backprop(double outcome, T<UCTNode<G, P>>* const table, unsigned leafDepth);
 
     // getters
     double getStateScore() const;
@@ -84,15 +82,6 @@ void UCTNode<G, P>::setup(G* game, P* policy)
 }
 
 template<typename G, typename P>
-UCTNode<G, P>::UCTNode(UCTNode<G, P>* parent):
-    parent(parent),
-    mean(0.5)
-{
-    vCount = game->getValidMoves().size();
-    vCounts = std::vector<double> (vCount, 1);
-}
-
-template<typename G, typename P>
 void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
     this->parent = parent;
     mean = 0.5;
@@ -106,6 +95,12 @@ void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
 }
 
 template<typename G, typename P>
+UCTNode<G, P>::UCTNode(UCTNode<G, P>* parent)
+{
+    reset(parent);
+}
+
+template<typename G, typename P>
 double UCTNode<G, P>::actionScore(UCTNode<G, P>* child, unsigned int childIdx, double logc) const {
     return (child ? child->mean : 0.5) + sqrt(logc / vCounts[childIdx]);
 }
@@ -114,11 +109,11 @@ template<typename G, typename P>
 template<template<typename> typename T>
 UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     UCTNode<G, P>* bestChild = nullptr;
-    unsigned int bestIdx;
+    unsigned bestIdx;
     unsigned bestMoveIdx;
     double maxScore = -1;
     double score;
-    unsigned int idx=0;
+    unsigned idx=0;
     double logc = c * log(vCount + 1);
     for(auto& move : game->getValidMoves()){
         unsigned moveIdx = game->toMoveIdx(move.getPiece(), move.getPos());
@@ -161,7 +156,12 @@ UCTNode<G, P>* UCTNode<G, P>::expand(T<UCTNode<G, P>>* const table) {
 
 template<typename G, typename P>
 template<template<typename> typename T>
-void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table){
+void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table, unsigned leafDepth){
+    // go up to leaf
+    while(game->getCurrentDepth() != leafDepth){
+        game->undo();
+    }
+    // backprop
     UCTNode<G, P>* current = this;
     UCTNode<G, P>* currParent = current->parent;
     while(currParent){
@@ -184,14 +184,6 @@ double UCTNode<G, P>::getStateScore() const {
 template<typename G, typename P>
 double UCTNode<G, P>::getVisitCount() const {
     return vCount;
-}
-
-template<typename G, typename P>
-void UCTNode<G, P>::setupBackProp(unsigned depth){
-    // update game with the leaf node state as preparation for backprop
-    while(game->getCurrentDepth() != depth){
-        game->undo();
-    }
 }
 
 #endif // UCTNODE_H
