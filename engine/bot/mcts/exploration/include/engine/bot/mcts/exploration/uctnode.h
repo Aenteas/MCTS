@@ -115,7 +115,7 @@ UCTNode<G, P>* UCTNode<G, P>::select(T<UCTNode<G, P>>* const table){
     double score;
     unsigned idx=0;
     double logc = c * log(vCount + 1);
-    for(auto& move : game->getValidMoves()){
+    for(const auto& move : game->getValidMoves()){
         unsigned moveIdx = game->toMoveIdx(move.getPiece(), move.getPos());
         UCTNode<G, P>* child = table->select(moveIdx);
         score = actionScore(child, idx, logc);

@@ -150,7 +150,7 @@ const array<double, 2>& Omega::scores()
 {
     playerScores[0] = 1;
     playerScores[1] = 1;
-    auto& takenMoves = moves.takenMoves().begin();
+    auto takenMoves = moves.takenMoves().begin();
     unsigned start = 0;
     unsigned end = 0;
     while (takenMoves)

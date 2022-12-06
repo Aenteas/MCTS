@@ -26,7 +26,7 @@ void RandomBot<G>::updateGame(){
     unsigned rootPlayer = game.getNextPlayer();
     unsigned currPlayer;
     do{
-        auto& moves = game.getValidMoves().begin();
+        auto moves = game.getValidMoves().begin();
         game.update(game.toMoveIdx(moves.getPiece(), moves.getPos()));
         currPlayer = game.getNextPlayer();
         ++moves;

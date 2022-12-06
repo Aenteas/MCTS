@@ -24,7 +24,7 @@ N* Node::selectMostVisited(T<N>* const  table, G* game){
     double maxVisit = -1;
     unsigned int bestMoveIdx;
     N* bestChild;
-    for(auto& move : game->getValidMoves()){
+    for(const auto& move : game->getValidMoves()){
         unsigned moveIdx = game->toMoveIdx(move.getPiece(), move.getPos());
         N* child = table->select(moveIdx);
         double visit = child ? child->getVisitCount() : 0;

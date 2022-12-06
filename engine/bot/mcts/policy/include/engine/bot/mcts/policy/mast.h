@@ -36,7 +36,7 @@ protected:
     // preallocate space for random sampling upfront by using the number of maximum legal moves
     std::vector<double> probs;
     // we only need to update moves that are taken after the current root
-    unsigned from;
+    int from;
 };
 
 template<typename G>
@@ -66,7 +66,7 @@ std::tuple<unsigned, unsigned> MAST<G>::select() {
     unsigned depth = game.getCurrentDepth();
     unsigned idx = 0;
 
-    for(auto& move : game.getValidMoves()){
+    for(const auto& move : game.getValidMoves()){
         auto piece = move.getPiece();
         auto pos = move.getPos();
         // no normalization is needed, relative volume matters
@@ -77,7 +77,7 @@ std::tuple<unsigned, unsigned> MAST<G>::select() {
     std::advance(it, idx); // only pick from legal moves
     std::discrete_distribution<> distribution (probs.begin(), it);
     idx = distribution(generator);
-    auto& itSelected = game.getValidMoves().begin();
+    auto itSelected = game.getValidMoves().begin();
     std::advance(itSelected, idx);
 
     unsigned moveIdx = game.toMoveIdx(itSelected.getPiece(), itSelected.getPos());
@@ -87,8 +87,8 @@ std::tuple<unsigned, unsigned> MAST<G>::select() {
 
 template<typename G>
 void MAST<G>::update(double outcome){
-    auto& moves = game.getTakenMoves().rbegin();
-    unsigned depth = game.getCurrentDepth() - 1;
+    auto moves = game.getTakenMoves().rbegin();
+    int depth = game.getCurrentDepth() - 1;
     while(depth >= from){
         // 1-outcome if black, faster then if block
         auto player = moves.getPlayer();

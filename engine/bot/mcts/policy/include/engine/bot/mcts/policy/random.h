@@ -40,7 +40,7 @@ std::tuple<unsigned, unsigned> RandomPolicy<G>::select() {
     std::advance(it, idx); // only pick from legal moves
     std::discrete_distribution<> distribution (probs.begin(), it);
     idx = distribution(generator);
-    auto& itSelected = game.getValidMoves().begin();
+    auto itSelected = game.getValidMoves().begin();
     std::advance(itSelected, idx);
 
     unsigned moveIdx = game.toMoveIdx(itSelected.getPiece(), itSelected.getPos());
