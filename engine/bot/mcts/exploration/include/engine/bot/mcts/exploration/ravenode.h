@@ -62,7 +62,6 @@ public:
     double getVisitCount() const;
 
     RAVENode<G, P>* parent;
-
 protected:
 
     inline void updateMC(double val);
@@ -205,15 +204,16 @@ void RAVENode<G, P>::backprop(double outcome, T<RAVENode<G, P>>* const table, un
     while(currParent){
         // action value is updated with the next player
         current->updateRAVE(outcome, takenMoves);
-        // state value is updated with previous player
-        --it;
-        auto move = *it;
-        current->updateMC(outcome+move.getPlayer()*(1.0-2.0*outcome));
-        takenMoves[move.getPlayer()][move.getPiece()].push_back(move.getPos());
-        current = currParent;
-        currParent = current->parent;
         // update because of available pieces
         game->undo();
+        
+        // state value is updated with parent's player
+        current->updateMC(outcome+game->getNextPlayer()*(1.0-2.0*outcome));
+        auto move = *it;
+        takenMoves[move.getPlayer()][move.getPiece()].push_back(move.getPos());
+        --it;
+        current = currParent;
+        currParent = current->parent;
     }
     // root
     ++(current->mcCount);

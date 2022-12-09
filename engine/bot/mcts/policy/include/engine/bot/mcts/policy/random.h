@@ -29,16 +29,19 @@ template<typename G>
 RandomPolicy<G>::RandomPolicy(G& game):
     game(game),
     probs(game.getMaxValidMoveNum(), 1)
-{}
+{
+}
 
 template<typename G>
 std::tuple<unsigned, unsigned> RandomPolicy<G>::select() {
-    std::default_random_engine generator;
-    auto& moves = game.getValidMoves();
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    const auto& moves = game.getValidMoves();
     unsigned idx = moves.size();
+
     auto it = probs.begin();
     std::advance(it, idx); // only pick from legal moves
-    std::discrete_distribution<> distribution (probs.begin(), it);
+    std::discrete_distribution<unsigned> distribution (probs.begin(), it);
     idx = distribution(generator);
     auto itSelected = game.getValidMoves().begin();
     std::advance(itSelected, idx);

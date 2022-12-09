@@ -33,8 +33,6 @@ protected:
     double w;
     double temp;
     G& game;
-    // preallocate space for random sampling upfront by using the number of maximum legal moves
-    std::vector<double> probs;
     // we only need to update moves that are taken after the current root
     int from;
 };
@@ -44,7 +42,6 @@ MAST<G>::MAST(G& game, double temp, double w):
     game(game),
     temp(temp),
     w(w),
-    probs(game.getMaxValidMoveNum(), exp(0.5/temp)),
     from(0)
 {
     std::array<std::vector<double>, G::PIECENUM> pieceScores; 
@@ -62,25 +59,23 @@ void MAST<G>::updateRoot()
 
 template<typename G>
 std::tuple<unsigned, unsigned> MAST<G>::select() {
-    std::default_random_engine generator;
+    std::random_device rd;
+    std::mt19937 generator(rd());
     unsigned depth = game.getCurrentDepth();
-    unsigned idx = 0;
-
+    std::vector<double> probs;
+    probs.reserve(game.getValidMoves().size());
     for(const auto& move : game.getValidMoves()){
         auto piece = move.getPiece();
         auto pos = move.getPos();
         // no normalization is needed, relative volume matters
-        probs[idx] = exp(scores[depth][game.getNextPlayer()][piece][pos]/temp);
-        ++idx;
+        probs.push_back(exp(scores[depth][game.getNextPlayer()][piece][pos]/temp));
     }
-    auto it = probs.begin();
-    std::advance(it, idx); // only pick from legal moves
-    std::discrete_distribution<> distribution (probs.begin(), it);
-    idx = distribution(generator);
-    auto itSelected = game.getValidMoves().begin();
-    std::advance(itSelected, idx);
+    std::discrete_distribution<> distribution (probs.begin(), probs.end());
+    unsigned idx = distribution(generator);
+    auto it = game.getValidMoves().begin();
+    std::advance(it, idx);
 
-    unsigned moveIdx = game.toMoveIdx(itSelected.getPiece(), itSelected.getPos());
+    unsigned moveIdx = game.toMoveIdx(it.getPiece(), it.getPos());
     game.select(moveIdx);
     return {moveIdx, idx};
 }

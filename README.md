@@ -2,7 +2,7 @@
 
 ## Description
 
-This repository contains a fully customizable Monte Carlo tree search algorithm in C++17. The implementation uses policy based design with templates to make the following behaviors configurable:
+This repository contains a fully customizable Monte Carlo tree search algorithm (MCTS) in C++17. The implementation uses policy based design with templates to make the following behaviors configurable:
 
 * Exploration strategy - Determines selection and backpropagation phases during the search
 * Transposition table - Provides memory management and storage for the tree nodes
@@ -12,12 +12,12 @@ This repository contains a fully customizable Monte Carlo tree search algorithm 
 
 The transposition table implementation enables the user to specify a memory budget for the search tree. See details below.
 
-The goal of this project is to provide C++ implementation of the MCTS algorithm that can be deployed in different board game engines using custom configurations with little effort.
+The goal of this project is to provide C++ implementation that can be extended with different MCTS variations and deployed in different board game engines with little effort.
 
 ## Features
 
-* Exploartion strategy - Upper confidence tree (UCT-2) [2].
-* Transposition table - Node recycling implementation from [3] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
+* Exploartion strategy - Upper confidence tree (UCT-2) [2]. Rapid Action Value Estimation (RAVE) [3].
+* Transposition table - Node recycling implementation from [4] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
 * Rollout policy - Move-Average Sampling Technique (MAST) and random simulation policies.
 * Scheduler - Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
 * Game type - Omega accompanied by a [QT](https://www.qt.io/) graphical interface.
@@ -84,7 +84,7 @@ In hash tables a collision occurs when 2 or more nodes are mapped to the same en
 Each time a collision occurs with open addressing, nodes can be placed to the next available slot called linear probing approach. Emptied slots should be marked with a special deleted flag otherwise nodes with a hash value earlier than the emptied cell, but that are stored in a position later than the emptied cell could be reported as not found during lookups. The problem with this approach is that it increases the load factor of the table and slows down the lookup time. 
 
 Since the number of lookups are much higher than the number of deletion during Monte Carlo tree search, it is better to fill up the deleted slots as we insert new nodes.
-When a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [4].
+When a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [5].
 
 Node recycling and recursive replacement for transposition table updates:
 
@@ -107,6 +107,8 @@ of their respective colors.
 
 [2] Childs, B. E., Brodeur, J. H., & Kocsis, L. (2008, December). Transpositions and move groups in Monte Carlo tree search. In 2008 IEEE Symposium On Computational Intelligence and Games (pp. 389-395). IEEE.
 
-[3] Powley, E., Cowling, P., & Whitehouse, D. (2017, September). Memory bounded monte carlo tree search. In Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment (Vol. 13, No. 1).
+[3] https://www.cs.utexas.edu/~pstone/Courses/394Rspring13/resources/mcrave.pdf
 
-[4] https://en.wikipedia.org/wiki/Linear_probing
+[4] Powley, E., Cowling, P., & Whitehouse, D. (2017, September). Memory bounded monte carlo tree search. In Proceedings of the AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment (Vol. 13, No. 1).
+
+[5] https://en.wikipedia.org/wiki/Linear_probing

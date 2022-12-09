@@ -8,7 +8,8 @@
  * implementation                                                                     *  
  * - Can be used for games where in each turn only one type of piece can be placed    *
  * on any of the empty cells on the board. Example games are: gomoku, hex, omega, go. *
- * - Provides random order access and updates in O(1)                                 * 
+ * - Provides random order access and updates in O(1)                                 *
+ * - Do not use multiple iterators simultaenously                                     *
  **************************************************************************************/
 
 class Moves
@@ -43,40 +44,38 @@ public:
         using reference = Move&;
         using iterator_category = std::input_iterator_tag;
 
-        Iterator(const Moves& parent) : it(nullptr), parent{parent} {}
+        Iterator(Moves& parent) : parent{parent} {}
 
-        Iterator(const Iterator& other): parent(other.parent) {
-            it = other.it;
-        }
+        Iterator(const Iterator& other): parent(other.parent) {}
 
         // only used when iterating through taken moves
-        unsigned getPlayer() const { return it->player; }
+        unsigned getPlayer() const { return parent.it->player; }
         // for taken moves we use the piece from the cell, otherwise the current piece to place
         // by adding plus indirection there is no need to update every valid moves with the current piece to place
         unsigned getPiece() const { return (*(parent.pieceCellpp))->piece; }
-        unsigned getPos() const { return it->pos; }
+        unsigned getPos() const { return parent.it->pos; }
 
-        bool operator!=(const Move* left) const { return it != left; }
+        bool operator!=(const Move* left) const { return parent.it != left; }
 
         value_type operator*() const { return *this; }
 
         // no post increment/decrement operators
         Iterator& operator++() { 
-            it=it->next; 
+            parent.it=parent.it->next; 
             return *this; 
         }
         Iterator& operator--() { 
-            it=it->prev; 
+            parent.it=parent.it->prev; 
             return *this; 
         }
 
         Iterator& begin() { 
-            it = parent.first; 
+            parent.it = parent.first; 
             return *this; 
         }
         
         Iterator& rbegin() { 
-            it = parent.last; 
+            parent.it = parent.last; 
             return *this; 
         }
 
@@ -85,13 +84,12 @@ public:
         }
 
         // iterator can be used in simple while loop
-        operator bool() const{ return it != nullptr; }
+        operator bool() const{ return parent.it != nullptr; }
 
         unsigned size() const { return parent.size; };
 
     private:
-        mutable pointer it;
-        const Moves& parent;
+        Moves& parent;
     };
 
     Iterator& validMoves();
@@ -129,6 +127,7 @@ private:
     unsigned numEmpty;
     const unsigned cellNum;
     Iterator iterator;
+    Move* it;
 };
 
 #endif // MOVES_H

@@ -89,6 +89,7 @@ protected:
             child = child->select(table);
         }
         unsigned leafDepth = game.getCurrentDepth();
+        // in an existing terminal node or can we expand?
         leaf = child ? child : leaf->expand(table);
         return leafDepth;
     }

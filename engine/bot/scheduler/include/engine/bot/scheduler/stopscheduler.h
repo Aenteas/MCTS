@@ -132,7 +132,7 @@ bool StopScheduler<G, T>::finish(){
     typename extractNodeType<T>::value_type* bestNode;
     typename extractNodeType<T>::value_type* secondBestNode;
     
-    for(auto& move : game.getValidMoves()){
+    for(const auto& move : game.getValidMoves()){
         unsigned moveIdx = game.toMoveIdx(move.getPiece(), move.getPos());
         auto node = table.select(moveIdx);
         score = node ? node->getVisitCount() : 0;

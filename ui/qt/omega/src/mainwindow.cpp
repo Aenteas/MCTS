@@ -22,7 +22,7 @@ MainWindow::MainWindow(double padding, double radius) :
     ui->timeSlider->setRange(1, 10);
     ui->timeSlider->setValue(1);
 
-    ui->engineComboBox->addItem(QString("Random"));
+    ui->engineComboBox->addItem(QString("random"));
     ui->engineComboBox->addItem(QString("MCTS"));
     ui->engineComboBox->setCurrentIndex(0);
 
@@ -32,11 +32,11 @@ MainWindow::MainWindow(double padding, double radius) :
 
     ui->policyComboBox->addItem(QString("random"));
     ui->policyComboBox->addItem(QString("MAST"));
-    ui->policyComboBox->setCurrentIndex(0);
+    ui->policyComboBox->setCurrentIndex(1);
 
-    ui->memoryComboBox->addItem(QString("OneDepthVNew"));
-    ui->memoryComboBox->addItem(QString("Node Recycling"));
-    ui->memoryComboBox->setCurrentIndex(0);
+    ui->memoryComboBox->addItem(QString("standard"));
+    ui->memoryComboBox->addItem(QString("node recycling"));
+    ui->memoryComboBox->setCurrentIndex(1);
 
     ui->nodeLimitSlider->setRange(1, 10);
     ui->nodeLimitSlider->setSingleStep(1);

@@ -139,7 +139,7 @@ Moves::Iterator& Moves::validMoves()
 
 Moves::Iterator& Moves::takenMoves()
 {
-    pieceCellpp = &(iterator.it); // piece will be the one placed on the actual cell iterated
+    pieceCellpp = &(it); // piece will be the one placed on the actual cell iterated
     size = numTaken; 
     first = firstTaken; 
     last = lastTaken;

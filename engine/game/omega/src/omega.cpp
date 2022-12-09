@@ -150,15 +150,14 @@ const array<double, 2>& Omega::scores()
 {
     playerScores[0] = 1;
     playerScores[1] = 1;
-    auto takenMoves = moves.takenMoves().begin();
     unsigned start = 0;
     unsigned end = 0;
-    while (takenMoves)
+    for (const auto& move : moves.takenMoves())
     {
         // BFS on each occupied hexagons to get the connected groups, then multiply their sizes together
         unsigned groupSize = 0;
-        unsigned pos = takenMoves.getPos();
-        unsigned piece = takenMoves.getPiece();
+        unsigned pos = move.getPos();
+        unsigned piece = move.getPiece();
         if (hexagons[pos].mark == mark)
         { // visited ? taken so should not be empty
             hexagons[pos].mark = !mark;
@@ -182,14 +181,11 @@ const array<double, 2>& Omega::scores()
             }
             playerScores[piece] *= groupSize;
         }
-        ++takenMoves;
     }
-    auto &emptyCells = moves.validMoves().begin();
     // set rest of the hexagons to visited
-    while (emptyCells)
+    for (const auto& emptyCell : moves.validMoves())
     {
-        hexagons[emptyCells.getPos()].mark = !mark;
-        ++emptyCells;
+        hexagons[emptyCell.getPos()].mark = !mark;
     }
     // negate mark so no need to update marks for every hexagon when calling score next time
     mark = !mark;

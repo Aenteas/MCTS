@@ -57,7 +57,6 @@ public:
     static constexpr double c = 2.0;
 
     UCTNode<G, P>* parent;
-
 protected:
     UCTNode(UCTNode& parent = nullptr);
 
