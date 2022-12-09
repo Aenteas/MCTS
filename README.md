@@ -10,6 +10,9 @@ This repository contains a fully customizable Monte Carlo tree search algorithm 
 * Scheduler - Time allocation strategy for each search phase
 * Game type - The type of board game to play
 
+Type of supported board games:
+2 player with arbitrary number of pieces where players can have sub-actions (like in omega where each player places 2 pieces in each turn)
+
 The transposition table implementation enables the user to specify a memory budget for the search tree. See details below.
 
 The goal of this project is to provide C++ implementation that can be extended with different MCTS variations and deployed in different board game engines with little effort.
