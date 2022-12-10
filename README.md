@@ -2,7 +2,7 @@
 
 ## Description
 
-This repository contains a fully customizable Monte Carlo tree search algorithm (MCTS) in C++17. The implementation uses policy based design with templates to make the following behaviors configurable:
+This repository contains a fully customizable Monte Carlo tree search algorithm (MCTS) in C++17. The implementation uses policy based template design (no virtual calls) to make the following behaviours configurable:
 
 * Exploration strategy - Determines selection and backpropagation phases during the search
 * Transposition table - Provides memory management and storage for the tree nodes
@@ -10,10 +10,12 @@ This repository contains a fully customizable Monte Carlo tree search algorithm 
 * Scheduler - Time allocation strategy for each search phase
 * Game type - The type of board game to play
 
-Type of supported board games:
-2 player with arbitrary number of pieces where players can have sub-actions (like in omega where each player places 2 pieces in each turn)
+Other configurable parameters:
+* The maximum number of tree nodes to allocate during the search.
+* Number of parallel threads (TODO)
 
-The transposition table implementation enables the user to specify a memory budget for the search tree. See details below.
+Type of supported board games:
+2 players with arbitrary number of pieces where players can have sub-actions (like in omega where each player places 2 pieces in each turn)
 
 The goal of this project is to provide C++ implementation that can be extended with different MCTS variations and deployed in different board game engines with little effort.
 
@@ -30,7 +32,7 @@ There is also a custom [generator](https://github.com/Aenteas/cmake-generator) u
 
 ## TODOS
 
-* Parallelisation and thread interruption
+* Tree parallelisation and thread interruption
 * Add python wrapper and demo
 
 ## Requirements
