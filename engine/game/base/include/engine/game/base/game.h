@@ -2,12 +2,14 @@
 #define GAME_H
 
 /***********************************************************************************
- * Base class for games providing a root state that can be used to periodically    *
- * update the derived instance during MCTS search                                  *
+ * Base class for games providing a shared root state that can be used to          *
+ * periodically update the derived instance during MCTS search                     *             *
  * Plus it provides some functionalities that are universal for 2 player board     *
  * games.                                                                          *
  * Derive from Game< *your own game class* > and forward the constructor arguments *
  * to its constructor.                                                             *
+ * Make sure to delete all the instances to create a new shared state:             *
+ * game = make_shared<Omega>(boardSize); could not change the shared state         *
  ***********************************************************************************/
 
 template<typename G>
@@ -32,23 +34,36 @@ public:
 
     unsigned getCurrentDepth() const;
 
+    Game(const Game& game)=delete;
+    Game(Game&& game)=delete;
+    Game& operator=(const Game& game)=delete;
+    Game& operator=(Game&& game)=delete;
+
     ~Game();
 
 protected:
     // instance holding the root game state for the derived instance
     inline static G* root = nullptr;
+    // instance holding the initial game state for the derived instance
+    inline static G* initial = nullptr;
 
     unsigned depth;
     unsigned nextPlayer;
+private:
+    inline static unsigned counter = 0;
 };
 
 template<typename G>
 Game<G>::~Game()
 {
-    if(root)
+    --counter;
+    // shared state is only deleted when there is no instance left to prevent undefined behaviour
+    // game = make_shared<Omega>(boardSize); would cause this
+    if(root && counter == 0)
     {
         G* temp = root; // prevents double free
         root = nullptr;
+        ++counter;
         delete temp;
     }
 }
@@ -59,9 +74,11 @@ Game<G>::Game(Args&&... args):
     depth(0),
     nextPlayer(0)
 {
+    ++counter;
     if(!root)
     {
         root = static_cast<G*>(this); // prevents infinite recursion
+        --counter;
         root = new G(std::forward<Args>(args)...);
     }
 }

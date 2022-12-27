@@ -6,20 +6,26 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>300</width>
-    <height>486</height>
+    <width>400</width>
+    <height>400</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>400</width>
+    <height>0</height>
+   </size>
+  </property>
   <property name="maximumSize">
    <size>
-    <width>300</width>
-    <height>486</height>
+    <width>400</width>
+    <height>700</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -31,195 +37,359 @@
 }</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="minimumSize">
+    <size>
+     <width>400</width>
+     <height>300</height>
+    </size>
+   </property>
    <property name="styleSheet">
     <string notr="true"/>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QLabel" name="modeLabel">
-        <property name="text">
-         <string>Game Mode</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="modeComboBox">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+     <widget class="QWidget" name="layout" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>350</width>
+        <height>0</height>
+       </size>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="modeLabel">
+         <property name="text">
+          <string>Game Mode</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="modeComboBox">
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(121, 121, 121);
 selection-background-color: rgb(32, 105, 224);
 </string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="boardLabel">
-        <property name="text">
-         <string>Board Size</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QSpinBox" name="boardSizeSpinBox">
-        <property name="styleSheet">
-         <string notr="true">QSpinBox{
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="boardLabel">
+         <property name="text">
+          <string>Board Size</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="boardSizeSpinBox">
+         <property name="styleSheet">
+          <string notr="true">QSpinBox{
         background-color: #797979;
 }</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="colorLabel">
-        <property name="text">
-         <string>Color</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="colorComboBox">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="colorLabel">
+         <property name="text">
+          <string>Color</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="colorComboBox">
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(121, 121, 121);
 selection-background-color: rgb(32, 105, 224);
 </string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="timeLabel">
-        <property name="text">
-         <string>Time limit: 1 min</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QScrollBar" name="timeSlider">
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="timeLabelMain">
+         <property name="text">
+          <string>Time limit: 1 min</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QScrollBar" name="timeSliderMain">
         <property name="styleSheet">
          <string notr="true">background-color: rgb(121, 121, 121);
 selection-color: rgb(32, 105, 224);</string>
         </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="engineLabel">
-        <property name="text">
-         <string>Search Engine</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="engineComboBox">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="botWidget" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>350</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777213</height>
+          </size>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0">
+           <widget class="QWidget" name="botWidget1" native="true">
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <item>
+              <widget class="QLabel" name="timeLabel1">
+               <property name="text">
+                <string>Time limit: 1 min</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QScrollBar" name="timeSlider1">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
 selection-color: rgb(32, 105, 224);</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="nodeLabel">
-        <property name="text">
-         <string>Node Type</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="nodeComboBox">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="engineLabel1">
+               <property name="text">
+                <string>search engine</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="engineComboBox1">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
 selection-color: rgb(32, 105, 224);</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="policyLabel">
-        <property name="text">
-         <string>Rollout policy</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="policyComboBox">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="nodeLabel1">
+               <property name="text">
+                <string>node type</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="nodeComboBox1">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
 selection-color: rgb(32, 105, 224);</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="memoryLabel">
-        <property name="text">
-         <string>Memory Management</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="memoryComboBox">
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="policyLabel1">
+               <property name="text">
+                <string>Rollout policy</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="policyComboBox1">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
 selection-color: rgb(32, 105, 224);</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="nodeLimitLabel">
-        <property name="text">
-         <string>Node Limit</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QScrollBar" name="nodeLimitSlider">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(121, 121, 121);
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="memoryLabel1">
+               <property name="text">
+                <string>memory management</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="memoryComboBox1">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
 selection-color: rgb(32, 105, 224);</string>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="startButton">
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="nodeLimitLabel1">
+               <property name="text">
+                <string>node limit</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QScrollBar" name="nodeLimitSlider1">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(200, 200, 200);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QWidget" name="botWidget2" native="true">
+            <layout class="QVBoxLayout" name="verticalLayout_2">
+             <item>
+              <widget class="QLabel" name="timeLabel2">
+               <property name="text">
+                <string>Time limit: 1 min</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QScrollBar" name="timeSlider2">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="engineLabel2">
+               <property name="text">
+                <string>search engine</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="engineComboBox2">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="nodeLabel2">
+               <property name="text">
+                <string>node type</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="nodeComboBox2">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="policyLabel2">
+               <property name="text">
+                <string>Rollout policy</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="policyComboBox2">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="memoryLabel2">
+               <property name="text">
+                <string>memory management</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="memoryComboBox2">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="nodeLimitLabel2">
+               <property name="text">
+                <string>node limit</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QScrollBar" name="nodeLimitSlider2">
+               <property name="styleSheet">
+                <string notr="true">background-color: rgb(100, 100, 100);
+selection-color: rgb(32, 105, 224);</string>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="startButton">
+         <property name="styleSheet">
+          <string notr="true">QPushButton{
         background-color: #797979;
 }
 
 QPushButton:pressed{
         background-color: #2069e0 ;
 }</string>
-        </property>
-        <property name="text">
-         <string>Start</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="quitButton">
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
+         </property>
+         <property name="text">
+          <string>Start</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="quitButton">
+         <property name="styleSheet">
+          <string notr="true">QPushButton{
         background-color: #797979;
 }
 
 QPushButton:pressed{
         background-color: #2069e0 ;
 }</string>
-        </property>
-        <property name="text">
-         <string>Quit</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
+         </property>
+         <property name="text">
+          <string>Quit</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </item>
    </layout>
   </widget>

@@ -9,8 +9,6 @@
 #include <QPolygon>
 #include <QLinearGradient>
 
-using namespace std;
-
 struct Point{
     double x, y;
     Point(const double& x, const double& y);
@@ -48,7 +46,7 @@ private:
     // brigthness factor that highilghts the most recent moves
     static int brightness;
     // hexa codes for colors
-    static map<Color, QColor> colorTable;
+    static std::map<Color, QColor> colorTable;
     QColor highlightColor() const;
     // indices of hexagons (row-by-row from left to right from top to bottom)
     unsigned int idx;

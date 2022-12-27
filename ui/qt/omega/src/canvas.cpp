@@ -1,5 +1,7 @@
 #include "canvas.h"
 
+using namespace std;
+
 typedef Hexagon::Color Color;
 
 Canvas::Canvas(QWidget *parent, int boardSize, double radius, double padding):
@@ -14,7 +16,7 @@ Canvas::Canvas(QWidget *parent, int boardSize, double radius, double padding):
 {
     this->setFixedSize(board_width(), board_height());
     create_hexagons();
-    connect(this, SIGNAL (updateGameState(unsigned, unsigned)), parent, SLOT (updateGameState(unsigned, unsigned)));
+    connect(this, SIGNAL (updateBoard(unsigned, unsigned)), parent, SLOT (updateByHuman(unsigned, unsigned)));
 }
 
 double Canvas::board_height() const{
@@ -147,12 +149,12 @@ void Canvas::mousePressEvent(QMouseEvent* ev)
             }
             // schedule paintEvent
             repaint();
-            emit updateGameState(pieceIdx, hexagon->idx);
+            emit updateBoard(pieceIdx, hexagon->idx);
         }
     }
 }
 
-void Canvas::aiBotMovedEvent(unsigned whiteIdx, unsigned blackIdx){
+void Canvas::update(unsigned whiteIdx, unsigned blackIdx){
     hexArray[whiteIdx]->updateColor(Color::WHITE);
     hexArray[blackIdx]->updateColor(Color::BLACK);
     // remove highlight color from previous hexagons

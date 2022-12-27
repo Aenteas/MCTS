@@ -21,8 +21,12 @@ void QtBotWrapper::updateByOpponent(unsigned int moveIdx){
     bot->updateByOpponent(moveIdx);
 }
 
-void QtBotWrapper::updateGame(){
+void QtBotWrapper::play(){
     thread.start();
+}
+
+void QtBotWrapper::stop(){
+    // empty
 }
 
 void QtBotWrapper::updateGameSlot(){

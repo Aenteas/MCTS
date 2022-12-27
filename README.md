@@ -21,7 +21,7 @@ The goal of this project is to provide C++ implementation that can be extended w
 
 ## Features
 
-* Exploartion strategy - Upper confidence tree (UCT-2) [2]. Rapid Action Value Estimation (RAVE) [3].
+* Exploration strategy - Upper confidence tree (UCT-2) [2]. Rapid Action Value Estimation (RAVE) [3].
 * Transposition table - Node recycling implementation from [4] adapted to linear probing transposition tables. As a benchmark, there is a standard transposition table implementation with chaining
 * Rollout policy - Move-Average Sampling Technique (MAST) and random simulation policies.
 * Scheduler - Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
@@ -86,10 +86,10 @@ Updating the node order when the budget is not exceeded:
 
 In hash tables a collision occurs when 2 or more nodes are mapped to the same entry. There are 2 common approaches to handle such events, chaining and open addressing. With chaining we have a linked list/vector/array at each entry to store multiple nodes while open addressing stores each elemenent in the hash table itself. Open addressing is preferred as long as the load factor is kept low, which is the main feature of node recycling.
 
-Each time a collision occurs with open addressing, nodes can be placed to the next available slot called linear probing approach. Emptied slots should be marked with a special deleted flag otherwise nodes with a hash value earlier than the emptied cell, but that are stored in a position later than the emptied cell could be reported as not found during lookups. The problem with this approach is that it increases the load factor of the table and slows down the lookup time. 
+Each time a collision occurs with open addressing, nodes can be placed to the next available slot called linear probing approach. Emptied slots should be marked with a special deleted flag otherwise nodes with a hash value earlier than the emptied cell, but that are stored in a position later than the emptied cell could be reported as not found during lookups. The problem with this approach is that it increases the load factor of the table over time and slows down the lookup time. 
 
 Since the number of lookups are much higher than the number of deletion during Monte Carlo tree search, it is better to fill up the deleted slots as we insert new nodes.
-When a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [5].
+When a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i, see node 5 on the figure below as an example). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [5].
 
 Node recycling and recursive replacement for transposition table updates:
 
@@ -105,6 +105,8 @@ Omega was born as an experiment on complexity and intuitive arithmetic, making a
 2 or more players, each trying to create groups of their colors by placing stones in a hexagonal grid, in order to score the most points, but 
 each player places stones of all colors in each turn. The scores for each player is calculated by multiplying the sizes of disconnected groups 
 of their respective colors.
+
+3 game modes are available: Player vs player, player vs computer and computer vs computer.
 
 ### References
 

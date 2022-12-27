@@ -1,5 +1,7 @@
 #include "hexagon.h"
 
+using namespace std;
+
 typedef Hexagon::Color Color;
 
 Hexagon::Hexagon(const Point& center, double radius, unsigned int idx):

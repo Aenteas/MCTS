@@ -24,7 +24,7 @@ public:
     void reset();
 
     // ---- geometry computations ----
-    vector<Point> hexa_centers() const;
+    std::vector<Point> hexa_centers() const;
     Point ref_point() const;
     Hexagon* locate_hexagon(const QPoint& pos);
 
@@ -34,7 +34,7 @@ public:
     unsigned num_hexagons() const;
 
     // updates canvas by ai moves
-    void aiBotMovedEvent(unsigned whiteIdx, unsigned blackIdx);
+    void update(unsigned whiteIdx, unsigned blackIdx);
 
     // render canvas un/clickable
     bool active;
@@ -50,8 +50,8 @@ private:
 
     // ---- hexagons ----
     void create_hexagons();
-    vector<vector<Hexagon>> hexagons;
-    vector<Hexagon*> hexArray;
+    std::vector<std::vector<Hexagon>> hexagons;
+    std::vector<Hexagon*> hexArray;
 
     // ---- variables for taking turns ----
     Hexagon::Color currentColor;
@@ -63,7 +63,7 @@ private slots:
 
 signals:
     // cell and piece idx
-    void updateGameState(unsigned, unsigned);
+    void updateBoard(unsigned, unsigned);
 };
 
 #endif // CANVAS_H

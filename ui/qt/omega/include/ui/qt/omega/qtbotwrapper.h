@@ -20,7 +20,8 @@ class QtBotWrapper : public QObject
 public:
     QtBotWrapper(AiBotBase* bot, const QTime& qtTimeTimeLeft);
     ~QtBotWrapper();
-    void updateGame();
+    void play();
+    void stop();
     QtBotWrapper(const AiBotBase&)=delete;
     QtBotWrapper& operator=(const AiBotBase&)=delete;
 
