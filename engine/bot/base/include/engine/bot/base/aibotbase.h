@@ -17,6 +17,7 @@ public:
     virtual void updateGame()=0;
     virtual void updateByOpponent(unsigned int moveIdx)=0;
 
+    virtual void stop()=0;
     void setTimeLeft(const std::chrono::milliseconds& timeLeft);
 
 protected:

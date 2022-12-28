@@ -29,6 +29,9 @@ public:
 
     virtual void updateByOpponent(unsigned moveIdx) override;
     void updateGame() override;
+    virtual void stop() override{
+        impl->stop();
+    }
 
 private:
     MCTSBase* impl;

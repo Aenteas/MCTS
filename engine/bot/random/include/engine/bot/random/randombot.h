@@ -10,8 +10,9 @@ public:
     RandomBot(G& game);
     virtual ~RandomBot()=default;
 
-    void updateByOpponent(unsigned int moveIdx) override;
-    void updateGame() override;
+    virtual void updateByOpponent(unsigned int moveIdx) override;
+    virtual void updateGame() override;
+    virtual void stop() override;
 protected:
     G& game;
 };
@@ -37,6 +38,11 @@ template<typename G>
 void RandomBot<G>::updateByOpponent(unsigned int moveIdx){
     // empty, game is expected to be updated at this point by the GUI and randombot does not have an internal representation of the game state
     // other than game
+}
+
+template<typename G>
+void RandomBot<G>::stop(){
+    // empty
 }
 
 #endif // RANDOMBOT_H

@@ -27,12 +27,13 @@ The goal of this project is to provide C++ implementation that can be extended w
 * Scheduler - Parabolic time allocation with early termination (when the best action can not change within the remaining time). The parabolic profile enables uneven time distribution (E.g. giving more budget on middle-game actions)
 * Game type - Omega accompanied by a [QT](https://www.qt.io/) graphical interface.
 * No virtual call or heap allocation during the search.
+* Search can be interrupted and continued
 
 There is also a custom [generator](https://github.com/Aenteas/cmake-generator) under the scripts folder that provides automatic [CMake](https://cmake.org/) file generation with a support for QT and python wrappers [(SWIG)](http://www.swig.org).
 
 ## TODOS
 
-* Tree parallelisation and thread interruption
+* Tree parallelisation
 * Add python wrapper and demo
 
 ## Requirements

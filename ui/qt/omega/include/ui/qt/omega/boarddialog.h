@@ -6,7 +6,10 @@
 #include <QHBoxLayout>
 #include <QTimer>
 #include <QTime>
+#include <QObject>
+#include <QThread>
 
+#include <boost/optional.hpp>
 #include <memory>
 #include <stdexcept>
 
@@ -107,6 +110,9 @@ struct Player: public QObject{
     virtual void stop()=0;
     virtual void reset()=0;
     virtual boost::optional<std::string> getErrorMsg() const=0;
+    virtual bool isInterrupted() const{
+        return false;
+    }
 protected:
     void initTimer(){
         timer.stop();
@@ -156,6 +162,7 @@ protected:
     std::shared_ptr<AiBotBase> impl;
     boost::optional<std::string> errorMsg;
     QThread thread;
+    bool interrupted;
 
     std::chrono::milliseconds computeTimeLeft() const{
         int millisecs = 3.6e6 * remainingTime.hour() + 6e4 * remainingTime.minute() + 1e3 * remainingTime.second() + remainingTime.msec();
@@ -177,6 +184,7 @@ private slots:
         catch(...){
             errorMsg = "Unknown error during execution.";
         }
+
         emit finished();
     }
 
@@ -184,7 +192,8 @@ public:
     Computer(BoardDialog& board, unsigned startingSecTime, const ComputerData& params):
         Player(board, startingSecTime),
         params(params),
-        impl(nullptr)
+        impl(nullptr),
+        interrupted(false)
     {
         reset();
         this->moveToThread(&thread);
@@ -198,10 +207,12 @@ public:
     virtual void play() override{
         board.setEnabled(false);
         startTiming();
+        interrupted = false;
         thread.start();
     }
     virtual void stop() override{
-        // impl->stop();
+        interrupted = true;
+        impl->stop();
         timer.stop();
     }
     virtual void reset() override{
@@ -218,6 +229,9 @@ public:
     }
     virtual boost::optional<std::string> getErrorMsg() const override{
         return errorMsg;
+    }
+    virtual bool isInterrupted() const override{
+        return interrupted;
     }
 };
 

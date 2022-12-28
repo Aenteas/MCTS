@@ -3,6 +3,7 @@
 
 #include "engine/bot/mcts/exploration/node.h"
 #include <stdexcept>
+#include <atomic>
 
 // Type erasure
 class MCTSBase{
@@ -16,6 +17,7 @@ public:
     MCTSBase& operator=(MCTSBase&&)=delete;
 
     virtual void run()=0;
+    virtual void stop()=0;
     virtual void updateByOpponent(unsigned moveIdx)=0;
 };
 
@@ -57,27 +59,35 @@ public:
 
     virtual void run() override{
         scheduler->schedule();
-        while(!scheduler->finish()){
+        interrupt.store(false);
+        bool finished = scheduler->finish();
+        while(!interrupt.load() && !finished){
             game.selectRoot();
             unsigned leafDepth = selection();
             double outcome = policy->simulate();
             leaf->backprop(outcome, table, leafDepth);
+            finished = scheduler->finish();
         }
-        game.selectRoot();
-        unsigned rootPlayer = game.getNextPlayer();
-        unsigned currPlayer;
-        // update root by the best move
-        do{
-            N* bestChild = Node::selectMostVisited(table, &game);
-            // depending on the hashtable implementation it could be that there was only one child explored and removed
-            if(bestChild)
-                root = bestChild;
-            else
-                root = root->expand(table);
-            currPlayer = game.getNextPlayer();
-        }while(rootPlayer == currPlayer); // one player might have multiple moves in a turn
+        if(finished){
+            game.selectRoot();
+            unsigned rootPlayer = game.getNextPlayer();
+            unsigned currPlayer;
+            // update root by the best move
+            do{
+                N* bestChild = Node::selectMostVisited(table, &game);
+                // depending on the hashtable implementation it could be that there was only one child explored and removed
+                if(bestChild)
+                    root = bestChild;
+                else
+                    root = root->expand(table);
+                currPlayer = game.getNextPlayer();
+            }while(rootPlayer == currPlayer); // one player might have multiple moves in a turn
+        }
     }
 
+    virtual void stop() override{
+        interrupt.store(true);
+    }
 protected:
     unsigned selection(){
         leaf = root;
@@ -100,6 +110,8 @@ protected:
     S* const scheduler;
     N* root;
     N* leaf;
+
+    std::atomic<bool> interrupt;
 };
 
 #endif // MCTS_H

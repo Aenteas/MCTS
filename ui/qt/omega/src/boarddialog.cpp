@@ -37,8 +37,6 @@ BoardDialog::BoardDialog(
 }
 
 void BoardDialog::setEnabled(bool flag){
-    ui->quitButton->setEnabled(flag);
-    ui->startButton->setEnabled(flag);
     canvas->active = flag;
 }
 
@@ -174,20 +172,22 @@ void BoardDialog::updateByComputer(){
         emit back_to_main();
         return;
     }
-    auto moves = game->getTakenMoves().rbegin();
-    unsigned blackPos = moves.getPos();
-    --moves;
-    unsigned whitePos = moves.getPos();
-    // update UI
-    canvas->update(whitePos, blackPos);
-    updateControlPanel();
-    if(!game->end()){
-        players[currPlayer]->stop();
-        // update opponent
-        currPlayer = 1 - currPlayer;
-        players[currPlayer]->update(game->toMoveIdx(0, whitePos));
-        players[currPlayer]->update(game->toMoveIdx(1, blackPos));
-        players[currPlayer]->play();
+    if(!players[currPlayer]->isInterrupted()){
+        auto moves = game->getTakenMoves().rbegin();
+        unsigned blackPos = moves.getPos();
+        --moves;
+        unsigned whitePos = moves.getPos();
+        // update UI
+        canvas->update(whitePos, blackPos);
+        updateControlPanel();
+        if(!game->end()){
+            players[currPlayer]->stop();
+            // update opponent
+            currPlayer = 1 - currPlayer;
+            players[currPlayer]->update(game->toMoveIdx(0, whitePos));
+            players[currPlayer]->update(game->toMoveIdx(1, blackPos));
+            players[currPlayer]->play();
+        }
     }
 }
 
