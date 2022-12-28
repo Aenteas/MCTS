@@ -12,8 +12,8 @@ BoardDialog::BoardDialog(
     double padding,
     unsigned timeWhite,
     unsigned timeBlack,
-    const boost::optional<BoardDialog::ComputerData>& paramsWhite,
-    const boost::optional<BoardDialog::ComputerData>& paramsBlack
+    const boost::optional<ComputerData>& paramsWhite,
+    const boost::optional<ComputerData>& paramsBlack
     ) :
     QDialog(parent),
     ui(make_shared<Ui::BoardDialog>()),
@@ -189,4 +189,15 @@ void BoardDialog::updateByComputer(){
         players[currPlayer]->update(game->toMoveIdx(1, blackPos));
         players[currPlayer]->play();
     }
+}
+
+std::shared_ptr<Player> Player::create(
+    BoardDialog& board, 
+    unsigned startingSecTime, 
+    const boost::optional<ComputerData>& params)
+{
+    if(params)
+        return std::make_shared<Computer>(board, startingSecTime, *params);
+    else
+        return std::make_shared<Human>(board, startingSecTime);
 }

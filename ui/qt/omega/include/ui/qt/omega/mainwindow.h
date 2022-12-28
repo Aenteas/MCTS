@@ -55,6 +55,17 @@ private:
     std::shared_ptr<BoardDialog> board;
     double padding;
     double radius;
+    inline static std::unordered_map<unsigned, unsigned> nodeBudgetMap = {
+        {1, 20},
+        {2, 50},
+        {3, 100},
+        {4, 200},
+        {5, 500},
+        {6, 1000},
+        {7, 2000},
+        {8, 5000},
+        {9, 10000}
+    };
 };
 
 #endif // MAINWINDOW_H

@@ -17,11 +17,10 @@ void MainWindow::on_timeSlider ## postfix ## _sliderMoved(int position)         
     ui->timeLabel ## postfix->setText(str);                                                 \
 }                                                                                           \
 
-#define NODESLIDERSLOT(index)                                                               \
-void MainWindow::setNodeLimitLabel ## index(int position){                                  \
-    int value = position < 5 ? 2000 * position : (position - 4) * 10000;                    \
-    ui->nodeLimitLabel ## index->setText(QString("Node limit: %1").arg(value));             \
-}                                                                                           \
+#define NODESLIDERSLOT(index)                                                                       \
+void MainWindow::setNodeLimitLabel ## index(int position){                                          \
+    ui->nodeLimitLabel ## index->setText(QString("Node limit: %1").arg(nodeBudgetMap[position]));   \
+}                                                                                                   \
 
 TIMESLIDERSLOT(1)
 TIMESLIDERSLOT(2)
@@ -144,9 +143,9 @@ MainWindow::MainWindow(double padding, double radius) :
 
     ui->nodeLimitSlider1->setRange(1, 9);
     ui->nodeLimitSlider1->setSingleStep(1);
-    ui->nodeLimitSlider1->setValue(5);
+    ui->nodeLimitSlider1->setValue(7);
 
-    setNodeLimitLabel1(5);
+    setNodeLimitLabel1(7);
 
     // black
     ui->timeSlider2->setRange(1, 13);
@@ -170,9 +169,9 @@ MainWindow::MainWindow(double padding, double radius) :
 
     ui->nodeLimitSlider2->setRange(1, 9);
     ui->nodeLimitSlider2->setSingleStep(1);
-    ui->nodeLimitSlider2->setValue(5);
+    ui->nodeLimitSlider2->setValue(7);
 
-    setNodeLimitLabel2(5);
+    setNodeLimitLabel2(7);
 
     // main part
     ui->boardSizeSpinBox->setRange(3, 10);
@@ -196,8 +195,8 @@ void MainWindow::on_startButton_clicked()
 {
     QString mode = ui->modeComboBox->currentText();
     int boardSize = ui->boardSizeSpinBox->value();
-    boost::optional<BoardDialog::ComputerData> params1 = boost::none;
-    boost::optional<BoardDialog::ComputerData> params2 = boost::none;
+    boost::optional<ComputerData> params1 = boost::none;
+    boost::optional<ComputerData> params2 = boost::none;
     unsigned time1, time2, from;
 
     #define CREATECOMPUTER(index)                                                                   \
@@ -208,7 +207,7 @@ void MainWindow::on_startButton_clicked()
         QString policy ## index = ui->policyComboBox ## index->currentText();                       \
         from = ui->nodeLimitLabel ## index->text().indexOf(":")+1;                                  \
         unsigned budget ## index = ui->nodeLimitLabel ## index->text().mid(from).toLong();          \
-        params ## index = boost::optional<BoardDialog::ComputerData>({version ## index,             \
+        params ## index = boost::optional<ComputerData>({version ## index,                          \
             node ## index,                                                                          \
             policy ## index,                                                                        \
             recycling ## index,                                                                     \
@@ -219,7 +218,7 @@ void MainWindow::on_startButton_clicked()
     }
     else if(mode == "PvComp"){
         QString color = ui->colorComboBox->currentText();
-        if(color == "WHITE"){
+        if(color == "White"){
             time1 = getSecsFromTimeSliderMain();
 
             // black player is computer
