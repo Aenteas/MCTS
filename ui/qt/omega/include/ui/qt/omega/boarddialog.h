@@ -37,12 +37,9 @@ class BoardDialog;
 class BoardDialog : public QDialog
 {
     Q_OBJECT
-    friend class AiBot;
     friend class Player;
     friend class Human;
     friend class Computer;
-protected:
-    void setEnabled(bool flag);
 
 public:
     BoardDialog(
@@ -139,7 +136,7 @@ struct Human : public Player{
     virtual void update(unsigned moveIdx) override { // empty 
     }
     virtual void play() override{
-        board.setEnabled(true);
+        board.canvas->active = true;
         startTiming();
     }
     virtual void stop() override{
@@ -199,13 +196,14 @@ public:
         this->moveToThread(&thread);
         connect(&thread, SIGNAL (started()), this, SLOT (updateGameSlot()));
         connect(this, SIGNAL (finished()), &thread, SLOT (quit()));
+        board.connect(&(thread), SIGNAL (finished()), &board, SLOT(updateByComputer()));
     }
 
     virtual void update(unsigned moveIdx) override{
         impl->updateByOpponent(moveIdx);
     }
     virtual void play() override{
-        board.setEnabled(false);
+        board.canvas->active = false;
         startTiming();
         interrupted = false;
         thread.start();
@@ -224,7 +222,6 @@ public:
             else
                 throw std::invalid_argument( "Invalid input string: " + params.version.toStdString() + " received" );
         }();
-        board.connect(&(thread), SIGNAL (finished()), &board, SLOT(updateByComputer()));
         initTimer();
     }
     virtual boost::optional<std::string> getErrorMsg() const override{

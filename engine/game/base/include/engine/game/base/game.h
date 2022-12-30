@@ -44,8 +44,6 @@ public:
 protected:
     // instance holding the root game state for the derived instance
     inline static G* root = nullptr;
-    // instance holding the initial game state for the derived instance
-    inline static G* initial = nullptr;
 
     unsigned depth;
     unsigned nextPlayer;

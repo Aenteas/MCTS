@@ -43,19 +43,20 @@ private:
     typedef N<G, PP> NN;                                                \
     typedef T<NN> TT;                                                   \
     typedef StopScheduler<G, TT> S;                                     \
-    PP* policy = new PP(game);                                          \
-    NN::setup(&game, policy);                                           \
+    PP* policyp = new PP(game);                                         \
+    NN::setup(&game, policyp);                                          \
     TT* table;                                                          \
     if constexpr(std::is_same_v<RZHashTable<NN>, T<NN>>)                \
         table = new TT(game.getTotalValidMoveNum(), 20, budget);        \
     else                                                                \
         table = new TT(game.getTotalValidMoveNum(), 20);                \
     S* scheduler = new S(timeLeft, game, *table);                       \
-    impl = new MCTS<NN, G, TT, PP, S>(game, table, policy, scheduler);  \
+    impl = new MCTS<NN, G, TT, PP, S>(game, table, policyp, scheduler); \
 
 template<typename G>
 MCTSBot::MCTSBot(G& game, std::string node, std::string policy, bool recycling, unsigned budget)
 {
+    budget = 100000;
     try{
         if(recycling){
             if(node == "UCT-2"){

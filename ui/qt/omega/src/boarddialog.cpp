@@ -36,10 +36,6 @@ BoardDialog::BoardDialog(
     ui->controlPanel->setFrameStyle(QFrame::Panel | QFrame::Sunken);
 }
 
-void BoardDialog::setEnabled(bool flag){
-    canvas->active = flag;
-}
-
 void BoardDialog::on_startButton_clicked()
 {
     players[currPlayer]->stop();
