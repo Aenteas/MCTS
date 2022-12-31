@@ -150,7 +150,7 @@ void BoardDialog::updateCountdown()
 void BoardDialog::updateByHuman(unsigned piece, unsigned cellIdx){
     unsigned moveIdx = game->toMoveIdx(piece, cellIdx);
     game->update(moveIdx);
-    players[currPlayer]->update(moveIdx);
+    players[1 - currPlayer]->update(moveIdx);
     // handles the case when game ends
     updateControlPanel();
     if(!game->end() && piece == 1){

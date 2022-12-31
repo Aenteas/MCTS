@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <iostream>
 using namespace std;
 
 // did not find a clean way of doing it in qt without code duplication

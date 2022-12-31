@@ -56,7 +56,6 @@ private:
 template<typename G>
 MCTSBot::MCTSBot(G& game, std::string node, std::string policy, bool recycling, unsigned budget)
 {
-    budget = 100000;
     try{
         if(recycling){
             if(node == "UCT-2"){
