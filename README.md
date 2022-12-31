@@ -99,6 +99,7 @@ Node recycling and recursive replacement for transposition table updates:
 ### Omega
 
 Gameplay:
+Here is a demonstration on how the computer plays as black with the default configuration:
 
 ![](gameplay.gif)
 
