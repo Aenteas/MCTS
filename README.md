@@ -72,6 +72,8 @@ What is node recycling? The idea is to discard the least recently visited leaf n
 
 During the selection phase we push the selected nodes to the back of the container where we assign higher importance for the nodes closer to the root. In the expansion step we overwrite the node at the front and update its position in the container. When the number of nodes exceeds the budget, the node to be overwritten is the least recently visited leaf node or an unreachable node (node recycling).
 
+By combining the work from [4] with transposition tables, the next node to be replaced won't necessarily be a leaf node. This is because nodes can have multiple parents due to transpositions. Nevertheless, the recycled node can not be any from the current selection path when using a single thread and the approach still remains a sensible node replacement strategy.
+
 Examples are shown on below images with a budget of 8 and transposition table size of 10.
 
 What are the benefits of node recycling?
@@ -91,8 +93,6 @@ Each time a collision occurs with open addressing, nodes can be placed to the ne
 
 Since the number of lookups are much higher than the number of deletion during Monte Carlo tree search, it is better to fill up the deleted slots as we insert new nodes.
 When a cell i is emptied, it is necessary to search forward through the following cells of the table until finding either another empty cell or a node that can be moved to cell i (that is, a node whose hash value is equal to or earlier than i, see node 5 on the figure below as an example). When an empty cell is found, then emptying cell i is safe and the deletion process terminates. But, when the search finds a node that can be moved to cell i, it performs this move. This has the effect of speeding up later searches for the moved node, but it also empties out another cell, later in the same block of occupied cells. The search for a movable nodes continues for the new emptied cell, in the same way, until it terminates by reaching a cell that was already empty. In this process of moving nodes to earlier cells, each node is examined only once. Therefore, the time to complete the whole process is proportional to the length of the block of occupied cells containing the deleted node, matching the running time of the other hash table operations [5].
-
-Using transposition tables the next node to be replaced won't necessarily be a leaf node as in the version from the original paper. This is because nodes can have multiple parents due to transpositions. Nevertheless, the recycled node can not be any from the current selection path when using a single thread and the approach still remains a sensible node replacement strategy.
 
 Node recycling and recursive replacement for transposition table updates:
 
