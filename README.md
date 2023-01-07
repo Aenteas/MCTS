@@ -79,7 +79,7 @@ What are the benefits of node recycling?
 * Can be customized for memory requirements
 * No heap allocation is needed during the search phase
 * Hash independent node replacement
-* A good fit for tree parallelization: Virtual loss does not save us from data race when intermittent nodes are potentially being overwritten. Since only the leaf nodes are recycled it is not a problem.
+* A good fit for tree parallelization because as opposed to standard node replacement strategies, nodes are not being replaced randomly (hash dependence).
 
 Updating the node order when the budget is not exceeded:
 
