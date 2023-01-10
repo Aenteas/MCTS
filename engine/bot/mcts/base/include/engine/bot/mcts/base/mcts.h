@@ -74,12 +74,7 @@ public:
             unsigned currPlayer;
             // update root by the best move
             do{
-                N* bestChild = Node::selectMostVisited(table, &game);
-                // depending on the hashtable implementation it could be that there was only one child explored and removed
-                if(bestChild)
-                    root = bestChild;
-                else
-                    root = root->expand(table);
+                root = Node::selectMostVisited(table, &game);
                 currPlayer = game.getNextPlayer();
             }while(rootPlayer == currPlayer); // one player might have multiple moves in a turn
         }

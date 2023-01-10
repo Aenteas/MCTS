@@ -34,8 +34,7 @@ N* Node::selectMostVisited(T<N>* const  table, G* game){
             bestMoveIdx = moveIdx;
         }
     }
-    if(bestChild)
-        table->update(bestMoveIdx);
+    bestChild = table->updateRoot(bestMoveIdx);
     game->update(bestMoveIdx);
     return bestChild;
 }
