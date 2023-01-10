@@ -38,20 +38,20 @@ private:
 };
 
 // helper macro to prevent code duplication caused by runtime dependent typedefs
-#define CREATE_IMPL(N, T, P)                                            \
-    typedef P<G> PP;                                                    \
-    typedef N<G, PP> NN;                                                \
-    typedef T<NN> TT;                                                   \
-    typedef StopScheduler<G, TT> S;                                     \
-    PP* policyp = new PP(game);                                         \
-    NN::setup(&game, policyp);                                          \
-    TT* table;                                                          \
-    if constexpr(std::is_same_v<RZHashTable<NN>, T<NN>>)                \
-        table = new TT(game.getTotalValidMoveNum(), 20, budget);        \
-    else                                                                \
-        table = new TT(game.getTotalValidMoveNum(), 20);                \
-    S* scheduler = new S(timeLeft, game, *table);                       \
-    impl = new MCTS<NN, G, TT, PP, S>(game, table, policyp, scheduler); \
+#define CREATE_IMPL(N, T, P)                                                                    \
+    typedef P<G> PP;                                                                            \
+    typedef N<G, PP> NN;                                                                        \
+    typedef T<NN> TT;                                                                           \
+    typedef StopScheduler<G, TT> S;                                                             \
+    PP* policyp = new PP(game);                                                                 \
+    NN::setup(&game, policyp);                                                                  \
+    TT* table;                                                                                  \
+    if constexpr(std::is_same_v<RZHashTable<NN>, T<NN>>)                                        \
+        table = new TT(game.getTotalValidMoveNum(), game.getMaxTurnNum(), 20, budget);          \
+    else                                                                                        \
+        table = new TT(game.getTotalValidMoveNum(), game.getMaxTurnNum(),20);                   \
+    S* scheduler = new S(timeLeft, game, *table);                                               \
+    impl = new MCTS<NN, G, TT, PP, S>(game, table, policyp, scheduler);                         \
 
 template<typename G>
 MCTSBot::MCTSBot(G& game, std::string node, std::string policy, bool recycling, unsigned budget)

@@ -36,7 +36,7 @@ template<typename G, typename P>
 class RAVENode
 {
 public:
-    RAVENode(RAVENode<G, P>* parent=nullptr);
+    RAVENode();
 
     RAVENode& operator=(const RAVENode&)=default;
     RAVENode(const RAVENode&)=default;
@@ -46,7 +46,7 @@ public:
 
     static void setup(G* game, P* policy);
 
-    void reset(RAVENode<G, P>* parent);
+    void reset();
 
     template<template<typename> typename T>
     RAVENode<G, P>* select(T<RAVENode<G, P>>* const table);
@@ -60,8 +60,6 @@ public:
     // getters
     double getStateScore() const;
     double getVisitCount() const;
-
-    RAVENode<G, P>* parent;
 protected:
 
     inline void updateMC(double val);
@@ -99,8 +97,7 @@ void RAVENode<G, P>::setup(G* game, P* policy)
 }
 
 template<typename G, typename P>
-void RAVENode<G, P>::reset(RAVENode<G, P>* parent){
-    this->parent = parent;
+void RAVENode<G, P>::reset(){
     mcCount = 1;
     mcMean = 0.5;
     for(unsigned piece : game->getAvailablePieces()){
@@ -111,8 +108,8 @@ void RAVENode<G, P>::reset(RAVENode<G, P>* parent){
 }
 
 template<typename G, typename P>
-RAVENode<G, P>::RAVENode(RAVENode<G, P>* parent){
-    reset(parent);
+RAVENode<G, P>::RAVENode(){
+    reset();
 }
 
 template<typename G, typename P>
@@ -200,7 +197,7 @@ void RAVENode<G, P>::backprop(double outcome, T<RAVENode<G, P>>* const table, un
     }
     // backprop
     RAVENode<G, P>* current = this;
-    RAVENode<G, P>* currParent = current->parent;
+    RAVENode<G, P>* currParent = table->backward();
     while(currParent){
         // action value is updated with the next player
         current->updateRAVE(outcome, takenMoves);
@@ -213,13 +210,11 @@ void RAVENode<G, P>::backprop(double outcome, T<RAVENode<G, P>>* const table, un
         takenMoves[move.getPlayer()][move.getPiece()].push_back(move.getPos());
         --it;
         current = currParent;
-        currParent = current->parent;
+        currParent = table->backward();
     }
     // root
     ++(current->mcCount);
     current->updateRAVE(outcome, takenMoves);
-    // set table to root
-    table->selectRoot();
 }
 
 template<typename G, typename P>

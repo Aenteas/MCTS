@@ -29,7 +29,7 @@ template<typename G, typename P>
 class UCTNode
 {
 public:
-    UCTNode(UCTNode<G, P>* parent = nullptr);
+    UCTNode();
 
     UCTNode& operator=(const UCTNode&)=default;
     UCTNode(const UCTNode&)=default;
@@ -38,7 +38,7 @@ public:
     ~UCTNode()=default;
 
     static void setup(G* game, P* policy);
-    void reset(UCTNode<G, P>* parent);
+    void reset();
 
     template<template<typename> typename T>
     UCTNode<G, P>* select(T<UCTNode<G, P>>* const table);
@@ -55,10 +55,7 @@ public:
 
     // c value for balancing exploration and exploitation
     static constexpr double c = 2.0;
-
-    UCTNode<G, P>* parent;
 protected:
-    UCTNode(UCTNode& parent = nullptr);
 
     inline double actionScore(UCTNode<G,P>* child, unsigned int childIdx, double logc) const;
 
@@ -81,8 +78,7 @@ void UCTNode<G, P>::setup(G* game, P* policy)
 }
 
 template<typename G, typename P>
-void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
-    this->parent = parent;
+void UCTNode<G, P>::reset(){
     mean = 0.5;
     vCount = game->getValidMoves().size();
     // here there is a potential for heap allocation when the number of valid moves can increase in a new position like in chess
@@ -94,9 +90,9 @@ void UCTNode<G, P>::reset(UCTNode<G, P>* parent){
 }
 
 template<typename G, typename P>
-UCTNode<G, P>::UCTNode(UCTNode<G, P>* parent)
+UCTNode<G, P>::UCTNode()
 {
-    reset(parent);
+    reset();
 }
 
 template<typename G, typename P>
@@ -157,12 +153,11 @@ template<typename G, typename P>
 template<template<typename> typename T>
 void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table, unsigned leafDepth){
     // go up to leaf
-    while(game->getCurrentDepth() != leafDepth){
+    while(game->getCurrentDepth() != leafDepth)
         game->undo();
-    }
     // backprop
     UCTNode<G, P>* current = this;
-    UCTNode<G, P>* currParent = current->parent;
+    UCTNode<G, P>* currParent = table->backward();
     while(currParent){
         game->undo();
         // win: 1, draw: 0.5, lose: 0
@@ -170,9 +165,8 @@ void UCTNode<G, P>::backprop(double outcome, T<UCTNode<G, P>>* const table, unsi
         double val = outcome+game->getNextPlayer()*(1.0-2.0*outcome);
         current->mean = (current->mean*(current->vCount-1)+val)/(current->vCount);
         current = currParent;
-        currParent = current->parent;
+        currParent = table->backward();
     }
-    table->selectRoot();
 }
 
 template<typename G, typename P>

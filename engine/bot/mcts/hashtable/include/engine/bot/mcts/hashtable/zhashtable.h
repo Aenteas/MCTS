@@ -22,7 +22,7 @@ class ZHashTable: public ZHashTableBase<ZHashTable<T>>
 public:
     ZHASHTABLEBASE_TYPEDEFS(ZHashTable<T>)
 
-    ZHashTable(unsigned moveNum, unsigned hashCodeSize=20);
+    ZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize=20);
     ~ZHashTable();
 
     ZHashTable(const ZHashTable&)=delete;
@@ -34,14 +34,14 @@ protected:
     struct DHashNode{
         // no forwarded arguments here: it is assumed that T has default arguments
         template<class... Args>
-        DHashNode(ull key=0, ull code=0, T* parent=nullptr, unsigned depth=0, Args&&... args):
-        impl(HashNode(key, code, parent, std::forward<Args>(args)...)),
+        DHashNode(ull key=0, ull code=0, unsigned depth=0, Args&&... args):
+        impl(HashNode(key, code, std::forward<Args>(args)...)),
         depth(depth){}
 
         template<class... Args>
-        void reset(ull key, ull code, T* parent, unsigned depth, Args&&... args){
+        void reset(ull key, ull code, unsigned depth, Args&&... args){
             this->depth = depth;
-            impl.reset(key, code, parent, std::forward<Args>(args)...);
+            impl.reset(key, code, std::forward<Args>(args)...);
         }
 
         HashNode impl;
@@ -51,40 +51,33 @@ public:
     // loads node, returns nullptr when it is not in the table
     T* select(unsigned moveIdx) const;
 
-    void update(unsigned moveIdx);
-
     template<class... Args>
     T* store(unsigned moveIdx, Args&&... args);
-    // root needs to be overriden by the best child from the previous search
+
     template<class... Args>
     T* updateRoot(unsigned moveIdx, Args&&... args);
-    // we can jump back to root after simulation as backpropagation is done inside node classes:
-    // each node has a pointer to their parents so we do not need to search them in the table neither
-    // we need to store the path in a stack
-    T* selectRoot();
+
+    void setupExploration();
 protected:
     std::vector<std::array<DHashNode*, 2>> table;
-    DHashNode* root;
-    DHashNode* rp;
-
-    // current search depth
-    unsigned depth;
+    T* rp;
+    DHashNode* helperNode;
 };
 
 template<typename T>
-ZHashTable<T>::ZHashTable(unsigned moveNum, unsigned hashCodeSize):
-    ZHashTableBase<ZHashTable<T>>(moveNum, hashCodeSize),
-    depth(0),
+ZHashTable<T>::ZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize):
+    ZHashTableBase<ZHashTable<T>>(moveNum, maxDepth, hashCodeSize),
     table{std::vector<std::array<DHashNode*, 2>>(pow(2, hashCodeSize), {nullptr, nullptr})},
-    root(new DHashNode()),
-    rp(new DHashNode())
+    rp(nullptr),
+    helperNode(new DHashNode())
 {}
 
 template<typename T>
 ZHashTable<T>::~ZHashTable()
 {
-    delete rp;
-    delete root;
+    if(rp)
+        delete rp;
+    delete helperNode;
     for(auto& slot : table){
         for(auto p : slot){
             if(p)
@@ -115,14 +108,7 @@ T* ZHashTable<T>::select(unsigned moveIdx) const
             return std::addressof(p->impl.impl);
         }
     }
-    return nullptr;
-}
-
-template<typename T>
-void ZHashTable<T>::update(unsigned moveIdx)
-{
-    Base::update(moveIdx);
-    ++depth;
+    return rp; // nullptr during selection, removed node during backpropagation
 }
 
 template<typename T>
@@ -130,85 +116,75 @@ template<class... Args>
 T* ZHashTable<T>::store(unsigned moveIdx, Args&&... args)
 {
     // zobrist hashing
-    Base::currCode ^= Base::hashCodes[moveIdx];
-    Base::currKey ^= Base::hashKeys[moveIdx];
-    ++depth;
+    Base::update(moveIdx);
     // replacement scheme
     // node deallocation is postponed after backpropagation
     // because node might be removed from the selection path
+    T* res;
     if(!table[Base::currCode][0]){
-        table[Base::currCode][0] = new DHashNode(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-        return std::addressof(table[Base::currCode][0]->impl.impl);
+        table[Base::currCode][0] = new DHashNode(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+        res = std::addressof(table[Base::currCode][0]->impl.impl);
     }
     else if(!table[Base::currCode][1]){
-        table[Base::currCode][1] = new DHashNode(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-        return std::addressof(table[Base::currCode][1]->impl.impl);
+        table[Base::currCode][1] = new DHashNode(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+        res = std::addressof(table[Base::currCode][1]->impl.impl);
     }
     else{
         // reachable ? -> closer to root ? -> visit count ?
         // we overwrite replaced node after backpropagation
-        if(table[Base::currCode][0]->depth <= root->depth){
-            std::swap(table[Base::currCode][0], rp);
-            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][0]->impl.impl);
+        if(table[Base::currCode][0]->depth <= Base::rootDepth){
+            std::swap(table[Base::currCode][0], helperNode);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][0]->impl.impl);
         }
-        else if(table[Base::currCode][1]->depth <= root->depth){
-            std::swap(table[Base::currCode][1], rp);
-            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][1]->impl.impl);
+        else if(table[Base::currCode][1]->depth <= Base::rootDepth){
+            std::swap(table[Base::currCode][1], helperNode);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][1]->impl.impl);
         }
         else if(table[Base::currCode][0]->depth > table[Base::currCode][1]->depth){
-            std::swap(table[Base::currCode][0], rp);
-            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][0]->impl.impl);
+            std::swap(table[Base::currCode][0], helperNode);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][0]->impl.impl);
         }
         else if(table[Base::currCode][0]->depth < table[Base::currCode][1]->depth){
-            std::swap(table[Base::currCode][1], rp);
-            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][1]->impl.impl);
+            std::swap(table[Base::currCode][1], helperNode);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][1]->impl.impl);
         }
         else if(table[Base::currCode][0]->impl.impl.getVisitCount() < table[Base::currCode][1]->impl.impl.getVisitCount()){
-            std::swap(table[Base::currCode][0], rp);
-            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][0]->impl.impl);
+            std::swap(table[Base::currCode][0], helperNode);
+            table[Base::currCode][0]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][0]->impl.impl);
         }
         else{
-            std::swap(table[Base::currCode][1], rp);
-            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::parent, depth, std::forward<Args>(args)...);
-            return std::addressof(table[Base::currCode][1]->impl.impl);
+            std::swap(table[Base::currCode][1], helperNode);
+            table[Base::currCode][1]->reset(Base::currKey, Base::currCode, Base::depth, std::forward<Args>(args)...);
+            res = std::addressof(table[Base::currCode][1]->impl.impl);
         }
     }
+    // if deleted node is one of the parents we can still do backpropagation
+    rp = std::addressof(helperNode->impl.impl);
+    return res;
 }
 
 template<typename T>
 template<class... Args>
 T* ZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
-    // zobrist hashing
-    Base::currCode ^= Base::hashCodes[moveIdx];
-    Base::currKey ^= Base::hashKeys[moveIdx];
-    ++depth;
-    for(auto& p : table[Base::currCode]){
-        if(p && p->impl.key == Base::currKey){
-            std::swap(root, p);
-            root->impl.impl.parent = nullptr;
-            goto found;
-        }
+    auto root = select(moveIdx);
+    if(!root){
+        root = store(moveIdx, std::forward<Args>(args)...);
+        ++Base::rootDepth;
     }
-    root->reset(Base::currKey, Base::currCode, nullptr, depth, std::forward<Args>(args)...);
-    found:
-    Base::parent = std::addressof(root->impl.impl);
-    return Base::parent;
+    else
+        Base::updateRoot(moveIdx);
+    rp = nullptr;
+    return root;
 }
 
 template<typename T>
-T* ZHashTable<T>::selectRoot()
-{
-    // update
-    depth = root->depth;
-    Base::currKey = root->impl.key;
-    Base::currCode = root->impl.code;
-    Base::parent = std::addressof(root->impl.impl);
-    return Base::parent;
+void ZHashTable<T>::setupExploration(){
+    rp = nullptr;
 }
 
 #endif // ZHASHTABLE_H

@@ -33,7 +33,7 @@ class ZHashTableBase
     // this ensures T to be derived from ZHashTableBase and prevents wrong usage that could cause undefined behavior (static cast in update function)
     friend T;
 private:
-    ZHashTableBase(unsigned moveNum, unsigned hashCodeSize=20);
+    ZHashTableBase(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize=20);
 protected:
     typedef unsigned long long ull;
     ~ZHashTableBase()=default;
@@ -46,16 +46,16 @@ protected:
     // wrapper around underlying node type
     struct HashNode{
         template<class... Args>
-        HashNode(ull key=0, ull code=0, typename nodeType<T>::value_type* parent=nullptr, Args&&... args):
-        impl(parent, std::forward<Args>(args)...),
+        HashNode(ull key=0, ull code=0, Args&&... args):
+        impl(std::forward<Args>(args)...),
         key(key),
         code(code){}
 
         template<class... Args>
-        void reset(ull key, ull code, typename nodeType<T>::value_type* parent, Args&&... args){
+        void reset(ull key, ull code, Args&&... args){
             this->key = key;
             this->code = code;
-            impl.reset(parent, std::forward<Args>(args)...);
+            impl.reset(std::forward<Args>(args)...);
         }
         typename nodeType<T>::value_type impl;
         ull key;
@@ -64,26 +64,41 @@ protected:
 public:
     // do not call this function on leaf node, use expand instead!
     void update(unsigned moveIdx);
-    typename nodeType<T>::value_type* selectCurrent();
+    typename nodeType<T>::value_type* backward();
+    void updateRoot(unsigned moveIdx);
+
+    template<class... Args>
+    typename nodeType<T>::value_type* createRoot(Args&&... args);
+
+    void setupExploration() 
+    { 
+        // empty 
+    }
+
 protected:
-    typename nodeType<T>::value_type* parent;
     // hashcode to map table entries
-    std::vector<ull> hashCodes;
+    inline static std::vector<ull> hashCodes;
     // unique node identifiers
-    std::vector<ull> hashKeys;
+    inline static std::vector<ull> hashKeys;
     // the hashcode of the current gamestate (node)
     ull currCode;
-    ull hashCodeMask;
     // the hashkey of the current gamestate (node)
     ull currKey;
+    // currently selected hashkeys stored for backpropagation
+    unsigned depth;
+    inline static unsigned rootDepth;
+private:
+    inline static ull hashCodeMask;
+    std::vector<ull> moveIdxs;
 };
 
 template<typename T>
-ZHashTableBase<T>::ZHashTableBase(unsigned moveNum, unsigned hashCodeSize):
-    parent(nullptr),
+ZHashTableBase<T>::ZHashTableBase(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize):
     currCode(0),
-    currKey(0)
+    currKey(0),
+    depth(0)
 {
+    rootDepth = 0;
     // this is unlikely but we check it for completeness
     if(moveNum > pow(2, hashCodeSize))
         throw std::invalid_argument( "RZHashTable: number of possible moves is greater than the number of entries" );
@@ -110,36 +125,56 @@ ZHashTableBase<T>::ZHashTableBase(unsigned moveNum, unsigned hashCodeSize):
         { n = distr(eng); }
         hashKeys.push_back(n);
     }
+    moveIdxs = std::vector<ull>(maxDepth + 1, 0);
 }
 
 template<typename T>
 void ZHashTableBase<T>::update(unsigned moveIdx)
 {
-    // static cast is safe as only derived class T can instantiate ZHashTableBase<T>
-    typename nodeType<T>::value_type* child = static_cast<T&>(*this).select(moveIdx);
     // Zobrist hashing
     currCode ^= hashCodes[moveIdx];
     currKey ^= hashKeys[moveIdx];
-    // no null pointer check, do not call this function on leaf node!
-    child->parent = parent;
-    // set parent so it can be provided to the next children
-    parent = child;
+    moveIdxs[depth] = moveIdx;
+    ++depth;
 }
 
 template<typename T>
-typename nodeType<T>::value_type* ZHashTableBase<T>::selectCurrent()
+void ZHashTableBase<T>::updateRoot(unsigned moveIdx)
 {
-    // select could be specified for each derived class if we need to remove additional XOR operations
-    // Dummy Zobrist hashing
-    currCode ^= hashCodes[0];
-    currKey ^= hashKeys[0];
-    // static cast is safe as only derived class T can instantiate ZHashTableBase<T>
-    typename nodeType<T>::value_type* child = static_cast<T&>(*this).select(0);
-    // Dummy Zobrist hashing
-    currCode ^= hashCodes[0];
-    currKey ^= hashKeys[0];
-    return child;
+    ++rootDepth;
+    update(moveIdx);
 }
+#include <iostream>
+template<typename T>
+typename nodeType<T>::value_type* ZHashTableBase<T>::backward()
+{
+    if(rootDepth < depth){
+        --depth;
+        auto parent = static_cast<T&>(*this).select(moveIdxs[depth]);
+        if(!parent)
+            std::cout << "ouch" << std::endl; 
+        currCode ^= hashCodes[moveIdxs[depth]];
+        currKey ^= hashKeys[moveIdxs[depth]];
+        return parent;
+    }
+    else{
+        // if constexpr(std::is_same_v<ZHashTable<nodeType<T>::value_type>, T>)
+        static_cast<T&>(*this).setupExploration();
+        return nullptr;
+    }
+}
+template<typename T>
+template<class... Args>
+typename nodeType<T>::value_type* ZHashTableBase<T>::createRoot(Args&&... args)
+{
+    currCode ^= hashCodes[0];
+    currKey ^= hashKeys[0];
+    auto root = static_cast<T&>(*this).store(0, std::forward<Args>(args)...);
+    --depth;
+    static_cast<T&>(*this).setupExploration();
+    return root;
+}
+
 
 // ZHashTableBase<T> class is dependent so scope is not examined in derived classes during unqualified name lookup
 // helper macro to use in derived classes

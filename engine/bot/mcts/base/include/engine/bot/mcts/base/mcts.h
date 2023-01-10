@@ -35,7 +35,7 @@ public:
         game(game),
         policy(policy),
         scheduler(scheduler),
-        root(table->selectRoot())
+        root(table->createRoot())
     {
     }
 
