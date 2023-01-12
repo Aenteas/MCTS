@@ -70,11 +70,6 @@ public:
     template<class... Args>
     typename nodeType<T>::value_type* createRoot(Args&&... args);
 
-    void setupExploration() 
-    { 
-        // empty 
-    }
-
 protected:
     // hashcode to map table entries
     inline static std::vector<ull> hashCodes;
@@ -178,8 +173,9 @@ typename nodeType<T>::value_type* ZHashTableBase<T>::createRoot(Args&&... args)
 
 // ZHashTableBase<T> class is dependent so scope is not examined in derived classes during unqualified name lookup
 // helper macro to use in derived classes
-#define ZHASHTABLEBASE_TYPEDEFS(type) typedef ZHashTableBase<type> Base; \
+#define ZHASHTABLEBASE_SETUP(type) typedef ZHashTableBase<type> Base; \
                                 typedef typename ZHashTableBase<type>::HashNode HashNode; \
                                 typedef typename ZHashTableBase<type>::ull ull; \
+                                friend class ZHashTableBase<type>; \
 
 #endif // ZHASHTABLEBASE_H

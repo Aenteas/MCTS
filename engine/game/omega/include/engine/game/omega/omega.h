@@ -61,8 +61,7 @@ public:
     Moves::Iterator& getLastMove();
     unsigned getLastMoveIdx();
 
-    std::vector<unsigned> getAvailablePieces() const;
-    unsigned getPieceMaxNumMoves(unsigned) const;
+    unsigned getMaxDepth() const;
 
     // total number of valid moves
     unsigned getTotalValidMoveNum() const;

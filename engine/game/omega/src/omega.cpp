@@ -223,14 +223,9 @@ unsigned Omega::getLastMoveIdx()
     return toMoveIdx(lastMove.getPiece(), lastMove.getPos());
 }
 
-std::vector<unsigned> Omega::getAvailablePieces() const
+unsigned Omega::getMaxDepth() const
 {
-    return {nextPiece};
-}
-
-unsigned Omega::getPieceMaxNumMoves(unsigned) const
-{
-    return cellNum;
+    return numSteps;
 }
 
 unsigned Omega::getTotalValidMoveNum() const

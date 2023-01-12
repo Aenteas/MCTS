@@ -16,10 +16,6 @@
  * parameter because they are templated by the Node class leading infinite        *
  * template recursion.                                                            *
  *                                                                                *
- * Moves are indexed by piece id and move index instead of a single move index.   *
- * This is much more memory friendly as we only store the indices for available   *
- * pieces. The cost is that we need double indexing but it is negligible          *
- *                                                                                *
  * Instead, we use the type to create template functions and pass                 *
  * it as argument. The cost of passing hash table as an argument each time is     *
  * negligible and probably will be optimized out by the compiler as they are      *
@@ -63,9 +59,9 @@ public:
 protected:
 
     inline void updateMC(double val);
-    inline void updateRAVE(double outcome, const std::array<std::array<std::vector<unsigned>, G::PIECENUM>, 2>& takenMoves);
+    inline void updateRAVE(double outcome, const std::array<std::vector<unsigned>, 2>& takenMoves);
 
-    double actionScore(RAVENode<G, P>* child, unsigned piece, unsigned pos) const;
+    inline double actionScore(RAVENode<G, P>* child, double beta, unsigned idx) const;
 
     // k value for weigthing MC and AMAF values
     static constexpr double k = 1000;
@@ -82,8 +78,8 @@ protected:
      * might be indexed differently for different nodes
     **/
     // [piece][pos]
-    std::array<std::vector<double>, G::PIECENUM> rMean;
-    std::array<std::vector<double>, G::PIECENUM> rCount;
+    std::vector<double> rMean;
+    std::vector<double> rCount;
 
     inline static P* policy;
     inline static G* game;
@@ -100,25 +96,24 @@ template<typename G, typename P>
 void RAVENode<G, P>::reset(){
     mcCount = 1;
     mcMean = 0.5;
-    for(unsigned piece : game->getAvailablePieces()){
-        unsigned pieceNumMoves = game->getPieceMaxNumMoves(piece);
-        rCount[piece] = std::vector<double>(pieceNumMoves, 1);
-        rMean[piece] = std::vector<double>(pieceNumMoves, 0.5);
-    }
+    std::fill(rCount.begin(), rCount.end(), 1);
+    std::fill(rMean.begin(), rMean.end(), 0.5);
 }
 
 template<typename G, typename P>
-RAVENode<G, P>::RAVENode(){
-    reset();
+RAVENode<G, P>::RAVENode():
+    mcCount(1.0),
+    mcMean(0.5),
+    rCount(std::vector<double>(game->getTotalValidMoveNum(), 1)),
+    rMean(std::vector<double>(game->getTotalValidMoveNum(), 0.5))
+{
 }
 
 template<typename G, typename P>
-double RAVENode<G, P>::actionScore(RAVENode<G, P>* child, unsigned piece, unsigned pos) const {
-    double beta = sqrt(RAVENode<G, P>::k / (3.0 * mcCount + RAVENode<G, P>::k));
-    double score = (1-beta) *
+double RAVENode<G, P>::actionScore(RAVENode<G, P>* child, double beta, unsigned idx) const {
+    return (1-beta) *
     (child ? child->mcMean : 0.5)
-    + beta * (rMean[piece][pos]);
-    return score;
+    + beta * (rMean[idx]);
 }
 
 template<typename G, typename P>
@@ -129,12 +124,13 @@ RAVENode<G, P>* RAVENode<G, P>::select(T<RAVENode<G, P>>* const table){
     unsigned bestMoveIdx;
     double maxScore = -1;
     double score;
+    double beta = sqrt(RAVENode<G, P>::k / (3.0 * mcCount + RAVENode<G, P>::k));
     for(const auto& move : game->getValidMoves()){
         unsigned piece = move.getPiece();
         unsigned pos = move.getPos();
         unsigned moveIdx = game->toMoveIdx(piece, pos);
         RAVENode<G, P>* child = table->select(moveIdx);
-        score = actionScore(child, piece, pos);
+        score = actionScore(child, beta, moveIdx);
         if(score > maxScore){
             maxScore = score;
             bestChild = child;
@@ -163,15 +159,13 @@ void RAVENode<G, P>::updateMC(double val){
 }
 
 template<typename G, typename P>
-void RAVENode<G, P>::updateRAVE(double outcome, const std::array<std::array<std::vector<unsigned>, G::PIECENUM>, 2>& takenMoves){
+void RAVENode<G, P>::updateRAVE(double outcome, const std::array<std::vector<unsigned>, 2>& takenMoves){
     auto player = game->getNextPlayer();
     double val = outcome+player*(1.0-2.0*outcome);
     // update available moves with the ones that were taken
-    for(unsigned piece : game->getAvailablePieces()){
-        for(unsigned pos : takenMoves[player][piece]){
-            rMean[piece][pos] = (rMean[piece][pos] * rCount[piece][pos]+val)/(rCount[piece][pos]+1);
-            ++rCount[piece][pos];
-        }
+    for(unsigned idx : takenMoves[player]){
+        rMean[idx] = (rMean[idx] * rCount[idx]+val)/(rCount[idx]+1);
+        ++rCount[idx];
     }
 }
 
@@ -179,20 +173,17 @@ template<typename G, typename P>
 template<template<typename> typename T>
 void RAVENode<G, P>::backprop(double outcome, T<RAVENode<G, P>>* const table, unsigned leafDepth){
     auto it = game->getTakenMoves().rbegin();
-    std::array<std::array<std::vector<unsigned>, G::PIECENUM>, 2> takenMoves;
+    std::array<std::vector<unsigned>, 2> takenMoves;
     for(unsigned player = 0; player < 2; ++player){
-        for(unsigned piece : game->getAvailablePieces()){
-            unsigned pieceNumMoves = game->getPieceMaxNumMoves(piece);
-            takenMoves[player][piece] = std::vector<unsigned>{};
-            takenMoves[player][piece].reserve(pieceNumMoves);
-        }
+        takenMoves[player] = std::vector<unsigned>{};
+        takenMoves[player].reserve(game->getMaxDepth());
     }
     // go up to leaf and gather played moves
     while(game->getCurrentDepth() != leafDepth){
         auto move = *it;
-        takenMoves[move.getPlayer()][move.getPiece()].push_back(move.getPos());
+        takenMoves[move.getPlayer()].push_back(game->toMoveIdx(move.getPiece(), move.getPos()));
         --it;
-        // update because of depth and available pieces
+        // update because of depth
         game->undo();
     }
     // backprop
@@ -207,7 +198,7 @@ void RAVENode<G, P>::backprop(double outcome, T<RAVENode<G, P>>* const table, un
         // state value is updated with parent's player
         current->updateMC(outcome+game->getNextPlayer()*(1.0-2.0*outcome));
         auto move = *it;
-        takenMoves[move.getPlayer()][move.getPiece()].push_back(move.getPos());
+        takenMoves[move.getPlayer()].push_back(game->toMoveIdx(move.getPiece(), move.getPos()));
         --it;
         current = currParent;
         currParent = table->backward();

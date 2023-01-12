@@ -25,7 +25,7 @@ template<typename T>
 class RZHashTable: public ZHashTableBase<RZHashTable<T>>
 {
 public:
-    ZHASHTABLEBASE_TYPEDEFS(RZHashTable<T>)
+    ZHASHTABLEBASE_SETUP(RZHashTable<T>)
 
     RZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize=20, unsigned budget=50000);
     ~RZHashTable()=default;
@@ -53,6 +53,8 @@ protected:
     // node is empty when the node code is the index for the last entry
     bool isEmpty(const typename std::list<HashNode>::iterator& it) const;
     void setEmpty(typename std::list<HashNode>::iterator& it);
+
+    void setupExploration();
 
     // empty code
     const ull EMPTYCODE;
@@ -85,7 +87,8 @@ RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCo
     unsigned tableSize = pow(2, hashCodeSize);
     if(tableSize < 2 * budget)
         throw std::invalid_argument( "RZHashTable: load factor should not exceed 0.5" );
-
+    if(budget < maxDepth + 1)
+        throw std::invalid_argument( "RZHashTable: budget should be greater than " + std::to_string(maxDepth) );
     empty = std::list<HashNode>(1, HashNode(0, EMPTYCODE));
     fifo = std::list<HashNode>(budget, HashNode(0, EMPTYCODE)); // preallocate nodes
 
@@ -223,12 +226,7 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     }
     // set last source entry to empty to remove duplication or the first one if there was no shift
     setEmpty(table[targetCode]);
-
-    // after leaf the next node to visit is root
-    target = fifo.end();
-    --target;
     return std::addressof(it->impl);
-
 }
 
 template<typename T>
@@ -250,6 +248,8 @@ T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
     if(isEmpty(it)){
         target = fifo.end(); // root will be the last in fifo
         T* root = store(moveIdx, std::forward<Args>(args)...);
+        // selected node will be moved in front of the root in the FIFO
+        --target;
         ++Base::rootDepth;
         return root;
     }
@@ -261,6 +261,12 @@ T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
         target = it;
         return std::addressof(it->impl);
     }
+}
+
+template<typename T>
+void RZHashTable<T>::setupExploration(){
+    target = fifo.end();
+    --target;
 }
 
 #endif // RZHASHTABLE_H

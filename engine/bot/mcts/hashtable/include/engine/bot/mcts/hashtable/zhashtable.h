@@ -20,7 +20,7 @@ template<typename T>
 class ZHashTable: public ZHashTableBase<ZHashTable<T>>
 {
 public:
-    ZHASHTABLEBASE_TYPEDEFS(ZHashTable<T>)
+    ZHASHTABLEBASE_SETUP(ZHashTable<T>)
 
     ZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize=20);
     ~ZHashTable();
@@ -57,8 +57,8 @@ public:
     template<class... Args>
     T* updateRoot(unsigned moveIdx, Args&&... args);
 
-    void setupExploration();
 protected:
+    void setupExploration();
     std::vector<std::array<DHashNode*, 2>> table;
     T* rp;
     DHashNode* helperNode;
