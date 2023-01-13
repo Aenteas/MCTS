@@ -62,15 +62,12 @@ protected:
         ull code;
     };
 public:
-    // do not call this function on leaf node, use expand instead!
-    void update(unsigned moveIdx);
     typename nodeType<T>::value_type* backward();
-    void updateRoot(unsigned moveIdx);
 
     template<class... Args>
     typename nodeType<T>::value_type* createRoot(Args&&... args);
 
-protected:
+private:
     // hashcode to map table entries
     inline static std::vector<ull> hashCodes;
     // unique node identifiers
@@ -82,9 +79,8 @@ protected:
     // currently selected hashkeys stored for backpropagation
     unsigned depth;
     inline static unsigned rootDepth;
-private:
+    std::vector<HashNode*> path;
     inline static ull hashCodeMask;
-    std::vector<ull> moveIdxs;
 };
 
 template<typename T>
@@ -109,51 +105,36 @@ ZHashTableBase<T>::ZHashTableBase(unsigned moveNum, unsigned maxDepth, unsigned 
 
     hashCodes.reserve(moveNum);
     hashKeys.reserve(moveNum);
+    
     for(unsigned i = 0;i<moveNum;++i){
         ull n = distr(eng) & hashCodeMask;
         while(any_of(hashCodes.begin(), hashCodes.begin() + i, [=](ull item){ return item == n; }))
         { n = distr(eng) & hashCodeMask; }
         hashCodes.push_back(n);
 
+        // prevent parent-child and sibling nodes to have the same hashkeys. Good for concurrency optimization
         n = distr(eng);
-        while(any_of(hashKeys.begin(), hashKeys.begin() + i, [=](ull item){ return item == n; }))
+        while(any_of(hashKeys.begin(), hashKeys.begin() + i, [=](ull item){ return item == n || n == 0; }))
         { n = distr(eng); }
         hashKeys.push_back(n);
     }
-    moveIdxs = std::vector<ull>(maxDepth + 1, 0);
+    path = std::vector<HashNode*>(maxDepth + 1, nullptr);
 }
 
-template<typename T>
-void ZHashTableBase<T>::update(unsigned moveIdx)
-{
-    // Zobrist hashing
-    currCode ^= hashCodes[moveIdx];
-    currKey ^= hashKeys[moveIdx];
-    moveIdxs[depth] = moveIdx;
-    ++depth;
-}
-
-template<typename T>
-void ZHashTableBase<T>::updateRoot(unsigned moveIdx)
-{
-    ++rootDepth;
-    update(moveIdx);
-}
 #include <iostream>
 template<typename T>
 typename nodeType<T>::value_type* ZHashTableBase<T>::backward()
 {
     if(rootDepth < depth){
         --depth;
-        auto parent = static_cast<T&>(*this).select(moveIdxs[depth]);
+        auto parent = path[depth];
         if(!parent)
             std::cout << "ouch" << std::endl; 
-        currCode ^= hashCodes[moveIdxs[depth]];
-        currKey ^= hashKeys[moveIdxs[depth]];
-        return parent;
+        currCode = path[depth]->code;
+        currKey = path[depth]->key;
+        return std::addressof(parent->impl);
     }
     else{
-        // if constexpr(std::is_same_v<ZHashTable<nodeType<T>::value_type>, T>)
         static_cast<T&>(*this).setupExploration();
         return nullptr;
     }

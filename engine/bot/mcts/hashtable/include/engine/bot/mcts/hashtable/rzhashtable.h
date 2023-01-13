@@ -43,7 +43,6 @@ public:
     template<class... Args>
     T* updateRoot(unsigned moveIdx, Args&&... args);
 
-    // overwrite base update function
     void update(unsigned moveIdx);
 
 protected:
@@ -153,7 +152,8 @@ template<typename T>
 void RZHashTable<T>::update(unsigned moveIdx)
 {
     // Zobrist hashing
-    Base::update(moveIdx);
+    Base::currCode ^= Base::hashCodes[moveIdx];
+    Base::currKey ^= Base::hashKeys[moveIdx];
     code = Base::currCode;
     auto it = table[code];
     while(!isEmpty(it)) {
@@ -165,6 +165,9 @@ void RZHashTable<T>::update(unsigned moveIdx)
             // update position in fifo
             fifo.splice(target, fifo, it);
             target = it;
+            // add new node to selection path
+            Base::path[Base::depth] = std::addressof(*it);
+            ++Base::depth;
             return;
         }
         code = (code + 1) & Base::hashCodeMask;
@@ -179,12 +182,17 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     // update code
     T* node = select(moveIdx);
     // Zobrist hashing
-    Base::update(moveIdx);
+    Base::currCode ^= Base::hashCodes[moveIdx];
+    Base::currKey ^= Base::hashKeys[moveIdx];
+    ++Base::depth;
 
     if(node)
         return node;
 
     auto it = fifo.begin();
+
+    // add new node to selection path
+    Base::path[Base::depth - 1] = std::addressof(*it);
 
     // get location of node to remove
     ull targetCode, sourceCode;
@@ -244,18 +252,21 @@ T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
     auto root = fifo.end();
     --root;
     fifo.splice(fifo.begin(), fifo, root);
+    ++Base::rootDepth;
     // if new root is not in table
     if(isEmpty(it)){
         target = fifo.end(); // root will be the last in fifo
         T* root = store(moveIdx, std::forward<Args>(args)...);
         // selected node will be moved in front of the root in the FIFO
         --target;
-        ++Base::rootDepth;
         return root;
     }
     else{
         // Zobrist hashing
-        Base::updateRoot(moveIdx);
+        Base::currCode ^= Base::hashCodes[moveIdx];
+        Base::currKey ^= Base::hashKeys[moveIdx];
+        Base::path[Base::depth] = std::addressof(*it);
+        ++Base::depth;
         // move new root to the last position
         fifo.splice(fifo.end(), fifo, it);
         target = it;
