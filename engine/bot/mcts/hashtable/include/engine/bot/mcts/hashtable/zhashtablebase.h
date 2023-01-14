@@ -139,15 +139,13 @@ void ZHashTableBase<T>::updateRoot(unsigned moveIdx)
     ++rootDepth;
     update(moveIdx);
 }
-#include <iostream>
+
 template<typename T>
 typename nodeType<T>::value_type* ZHashTableBase<T>::backward()
 {
     if(rootDepth < depth){
         --depth;
         auto parent = static_cast<T&>(*this).select(moveIdxs[depth]);
-        if(!parent)
-            std::cout << "ouch" << std::endl; 
         currCode ^= hashCodes[moveIdxs[depth]];
         currKey ^= hashKeys[moveIdxs[depth]];
         return parent;
