@@ -33,7 +33,7 @@ There is also a custom [generator](https://github.com/Aenteas/cmake-generator) u
 
 ## TODOS
 
-* Working on tree parallelisation: it is definitely not an easy one:)
+* Tree parallelisation
 * Add python wrapper and demo
 
 ## Requirements
