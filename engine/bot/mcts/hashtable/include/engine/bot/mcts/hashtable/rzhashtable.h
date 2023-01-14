@@ -2,6 +2,7 @@
 #define RZHASHTABLE_H
 
 #include "zhashtablebase.h"
+#include "parallellist.h"
 
 #include <algorithm>
 #include <list>
@@ -50,27 +51,27 @@ protected:
     // and to initialize the table so no valid entries are overridden in store function at the begining
     // this way we can spare an if statement in the store function
     // node is empty when the node code is the index for the last entry
-    bool isEmpty(const typename std::list<HashNode>::iterator& it) const;
-    void setEmpty(typename std::list<HashNode>::iterator& it);
+    bool isEmpty(typename ParallelList<HashNode>::Node* p) const;
+    void setEmpty(typename ParallelList<HashNode>::Node* p);
 
     void setupExploration();
 
     // empty code
     const ull EMPTYCODE;
     // empty node
-    inline static std::list<HashNode> empty;
+    ParallelList<HashNode> empty;
 
     // least recently visited node to discard is at the beginning
     // technically not a fifo because we need to move interior nodes to the end each time they are visited
-    inline static std::list<HashNode> fifo;
+    ParallelList<HashNode> fifo;
     // maps hash values to iterators in the fifo
-    std::vector<typename std::list<HashNode>::iterator> table;
+    std::vector<typename ParallelList<HashNode>::Node*> table;
     // we update the fifo during the selection phase (visited ones should go to the back)
     // in the selection phase nodes need to be inserted before their parents and target stores that location
     // alternatively we could do it during backpropagation (so nodes just can be pushed to the back)
     // but this way the caller do not need to rely on a stack storing the moves/nodes
     // and the fifo member can be better parallelized
-    typename std::list<HashNode>::iterator target;
+    typename ParallelList<HashNode>::Node* target;
 
     // code stores the result (hash value) from the last linear probing
     // so later we can store the new node at the proper location
@@ -81,6 +82,8 @@ template<typename T>
 RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCodeSize, unsigned budget):
     ZHashTableBase<RZHashTable<T>>(moveNum, maxDepth, hashCodeSize),
     EMPTYCODE(pow(2, hashCodeSize)),
+    empty(ParallelList<HashNode>(2, 0, EMPTYCODE)),
+    fifo(ParallelList<HashNode>(budget, 0, EMPTYCODE)), // preallocate nodes
     code(0)
 {
     unsigned tableSize = pow(2, hashCodeSize);
@@ -88,41 +91,37 @@ RZHashTable<T>::RZHashTable(unsigned moveNum, unsigned maxDepth, unsigned hashCo
         throw std::invalid_argument( "RZHashTable: load factor should not exceed 0.5" );
     if(budget < maxDepth + 1)
         throw std::invalid_argument( "RZHashTable: budget should be greater than " + std::to_string(maxDepth) );
-    empty = std::list<HashNode>(1, HashNode(0, EMPTYCODE));
-    fifo = std::list<HashNode>(budget, HashNode(0, EMPTYCODE)); // preallocate nodes
-
     // last is root
-    fifo.back().code = 0;
+    fifo.back()->data.code = 0;
     // next insertion before root
-    target = fifo.end();
-    --target;
+    target = fifo.back();
 
     // +2 additional dummy entries at the end
-    table = std::vector<typename std::list<HashNode>::iterator>(tableSize + 2, empty.begin());
+    table = std::vector<typename ParallelList<HashNode>::Node*>(tableSize + 2, empty._front);
     table[Base::currCode] = target; // set root in table
 }
 
 template<typename T>
-inline bool RZHashTable<T>::isEmpty(const typename std::list<HashNode>::iterator& it) const{
-    return it == empty.begin();
+inline bool RZHashTable<T>::isEmpty(typename ParallelList<HashNode>::Node* p) const{
+    return p == empty._front;
 }
 
 template<typename T>
-inline void RZHashTable<T>::setEmpty(typename std::list<HashNode>::iterator& it) {
-    it = empty.begin();
+inline void RZHashTable<T>::setEmpty(typename ParallelList<HashNode>::Node* p) {
+    p = empty._front;
 }
 
 template<typename T>
 T* RZHashTable<T>::select(unsigned moveIdx)
 {
     code = Base::currCode ^ Base::hashCodes[moveIdx];
-    auto it = table[code];
+    auto p = table[code];
     // linear probing
     // there is no infinite loop as the number of
     // nodes are strictly smaller than the number of entries
-    while(!isEmpty(it)) {
+    while(!isEmpty(p)) {
         // node is in the table
-        if(it->key == (Base::currKey ^ Base::hashKeys[moveIdx])){
+        if(p->data.key == (Base::currKey ^ Base::hashKeys[moveIdx])){
             /**
                There is almost zero probability that 2 states from the current selection path will be mapped
                to the same entry with the same hashKey. But when it happens we
@@ -139,10 +138,10 @@ T* RZHashTable<T>::select(unsigned moveIdx)
 
             // in case Ts' & operator is overloaded
             // * operator gives reference
-            return std::addressof(it->impl);
+            return std::addressof(p->data.impl);
         }
         code = (code + 1) & Base::hashCodeMask;
-        it = table[code];
+        p = table[code];
     }
     // node is not in the table
     return nullptr;
@@ -155,23 +154,22 @@ void RZHashTable<T>::update(unsigned moveIdx)
     Base::currCode ^= Base::hashCodes[moveIdx];
     Base::currKey ^= Base::hashKeys[moveIdx];
     code = Base::currCode;
-    auto it = table[code];
-    while(!isEmpty(it)) {
+    auto p = table[code];
+    while(!isEmpty(p)) {
         // node is in the table
-        if(it->key == Base::currKey){
+        if(p->data.key == Base::currKey){
 
             // in case Ts' & operator is overloaded
             // * operator gives reference
             // update position in fifo
-            fifo.splice(target, fifo, it);
-            target = it;
+            target = fifo.splice(p, target);
             // add new node to selection path
-            Base::path[Base::depth] = std::addressof(*it);
+            Base::path[Base::depth] = std::addressof(p->data);
             ++Base::depth;
             return;
         }
         code = (code + 1) & Base::hashCodeMask;
-        it = table[code];
+        p = table[code];
     }
 }
 
@@ -189,30 +187,28 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     if(node)
         return node;
 
-    auto it = fifo.begin();
+    // update position in fifo: move front before current parent
+    auto p = fifo.spliceFront(target);
 
     // add new node to selection path
-    Base::path[Base::depth - 1] = std::addressof(*it);
+    Base::path[Base::depth - 1] = std::addressof(p->data);
 
     // get location of node to remove
     ull targetCode, sourceCode;
-    targetCode = fifo.front().code;
+    targetCode = p->data.code;
 
     // to restore dummy address, only bit manipulation, no if is needed
     ull ov = targetCode & ~Base::hashCodeMask;
     // find exact location
-    while(table[targetCode]->key != fifo.front().key)
+    while(table[targetCode]->data.key != p->data.key)
         targetCode = (targetCode + 1) & Base::hashCodeMask;
     sourceCode = (targetCode + 1) & Base::hashCodeMask | ov;
 
-    // update position in fifo
-    fifo.splice(target, fifo, it);
-
     // we insert before shifting so we do not need to check if we need to shift it afterwards
     // override the least recently visited leaf node by the new one
-    it->reset(Base::currKey, Base::currCode, std::forward<Args>(args)...);
+    p->data.reset(Base::currKey, Base::currCode, std::forward<Args>(args)...);
     // set the iterator in the hash table
-    table[code] = it;
+    table[code] = p;
 
     // ---- remove least recently visited leaf from hashtable ----
 
@@ -224,8 +220,8 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
         // check if we can shift from source (that is hashcode is between the target and its current location)
         // normal in-between comparison would not work because of overflow
         if(sourceCode < targetCode ?
-           (table[sourceCode]->code <= targetCode && table[sourceCode]->code > sourceCode) :
-           (table[sourceCode]->code <= targetCode || table[sourceCode]->code > sourceCode))
+           (table[sourceCode]->data.code <= targetCode && table[sourceCode]->data.code > sourceCode) :
+           (table[sourceCode]->data.code <= targetCode || table[sourceCode]->data.code > sourceCode))
         {
             table[targetCode] = table[sourceCode];
             targetCode = sourceCode;
@@ -234,7 +230,7 @@ T* RZHashTable<T>::store(unsigned moveIdx, Args&&... args)
     }
     // set last source entry to empty to remove duplication or the first one if there was no shift
     setEmpty(table[targetCode]);
-    return std::addressof(it->impl);
+    return std::addressof(p->data.impl);
 }
 
 template<typename T>
@@ -242,42 +238,38 @@ template<class... Args>
 T* RZHashTable<T>::updateRoot(unsigned moveIdx, Args&&... args){
     // no synchronization is needed, function is not used concurrently
     code = Base::currCode ^ Base::hashCodes[moveIdx];
-    auto it = table[code];
-    while(!isEmpty(it) && it->key != (Base::currKey ^ Base::hashKeys[moveIdx])) {
+    auto p = table[code];
+    while(!isEmpty(p) && p->data.key != (Base::currKey ^ Base::hashKeys[moveIdx])) {
         code = (code + 1) & Base::hashCodeMask;
-        it = table[code];
+        p = table[code];
     }
 
     // move old root to the beginning of fifo to be overridden
-    auto root = fifo.end();
-    --root;
-    fifo.splice(fifo.begin(), fifo, root);
+    fifo.spliceRoot();
     ++Base::rootDepth;
     // if new root is not in table
-    if(isEmpty(it)){
+    if(isEmpty(p)){
         target = fifo.end(); // root will be the last in fifo
         T* root = store(moveIdx, std::forward<Args>(args)...);
         // selected node will be moved in front of the root in the FIFO
-        --target;
+        target = fifo.back();
         return root;
     }
     else{
         // Zobrist hashing
         Base::currCode ^= Base::hashCodes[moveIdx];
         Base::currKey ^= Base::hashKeys[moveIdx];
-        Base::path[Base::depth] = std::addressof(*it);
+        Base::path[Base::depth] = std::addressof(p->data);
         ++Base::depth;
         // move new root to the last position
-        fifo.splice(fifo.end(), fifo, it);
-        target = it;
-        return std::addressof(it->impl);
+        target = fifo.splice(p, fifo.end());
+        return std::addressof(p->data.impl);
     }
 }
 
 template<typename T>
 void RZHashTable<T>::setupExploration(){
-    target = fifo.end();
-    --target;
+    target = fifo.back();
 }
 
 #endif // RZHASHTABLE_H
