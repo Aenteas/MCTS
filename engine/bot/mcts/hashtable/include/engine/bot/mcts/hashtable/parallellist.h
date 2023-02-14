@@ -36,10 +36,8 @@ public:
                 p->next->prev = p;
                 p = p->next;
             }
-            _front = dummyFront->next;
             dummyBack = p;
             dummyBack->next = nullptr;
-            _back = dummyBack->prev;
             // T is a hashNode in our case, last is root
             _back->data.code = 0;
         }
@@ -74,41 +72,36 @@ public:
         source->prev = target->prev;
         target->prev = source;
         source->next = target;
-        // update front and back
-        _front = dummyFront->next;
-        _back = dummyBack->prev;
         // only data is accessable from Node so it is safe to return
         return p;
     }
 
     Node* spliceFront(Node* target){
         std::lock_guard<std::mutex> lock(m);
-        Node* p = _front;
+        Node* p = dummyFront->next;
         // remove
-        dummyFront->next = _front->next;
-        _front->next->prev = dummyFront;
+        p->next->prev = dummyFront;
+        dummyFront->next = p->next
         // add before target
-        target->prev->next = _front;
-        _front->prev = target->prev;
-        target->prev = _front;
-        _front->next = target;
-        // update front and back
-        _front = dummyFront->next;
-        _back = dummyBack->prev;
+        target->prev->next = p;
+        p_>prev = target->prev;
+        target->prev = p;
+        p_>next = target;
         // only data is accessable from Node so it is safe to return
         return p;
     }
     void spliceRoot(){
         // not used concurrently so no lock is needed
         // move last to front
-        dummyBack->prev = _back->prev;
-        _back->prev->next = dummyBack;
-        dummyFront->next = _back;
-        _front->prev = _back;
-        _back->prev = dummyFront;
-        _back->next = _front;
-        _front = _back;
-        _back = dummyBack->prev;
+        Node* p = dummyBack->prev;
+        // remove
+        dummyBack->prev = dummyBack->prev->prev;
+        p->prev->next = dummyBack;
+        // add before front
+        p->prev = dummyFront;
+        p->next = dummyFront->next;
+        dummyFront->next->prev = p;
+        dummyFront->next = p;
     }
     Node* end(){
         // only data is accessable from Node so it is safe to return
@@ -121,10 +114,7 @@ public:
         auto res = _back;
         return res;
     }
-    // we do not write _front from concurrent threads
-    Node* _front;
 private:
-    Node* _back;
     Node* dummyFront;
     Node* dummyBack;
 
